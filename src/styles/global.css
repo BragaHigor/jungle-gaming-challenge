@@ -1,7 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import './tokens.css';
-@import './components.css';
 
 @layer base {
   html {
@@ -61,42 +60,5 @@
       transition: none !important;
       scroll-behavior: auto !important;
     }
-  }
-}
-
-.page-container {
-  width: 100%;
-  max-width: calc(var(--content-width) + var(--page-gutter) * 2);
-  margin-inline: auto;
-  padding-inline: var(--page-gutter);
-}
-.site-layout {
-  padding-top: 1.5rem;
-}
-.page-content {
-  margin-top: 2rem;
-}
-.page-heading {
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
-  font-weight: 700;
-}
-.skip-link {
-  position: fixed;
-  top: 0.5rem;
-  left: 0.5rem;
-  z-index: 100;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius-md);
-  background: var(--primary);
-  color: var(--background);
-  transform: translateY(-200%);
-}
-.skip-link:focus {
-  transform: translateY(0);
-}
-@media (max-width: 699px) {
-  .site-layout {
-    padding-top: 0.5rem;
-    padding-bottom: calc(7rem + env(safe-area-inset-bottom));
   }
 }

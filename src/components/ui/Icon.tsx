@@ -1,6 +1,14 @@
 import type { ReactNode, SVGProps } from 'react'
 
 const paths = {
+  filter: (
+    <>
+      <path d="M4 7h16M4 17h16" />
+      <circle cx="9" cy="7" r="2" />
+      <circle cx="15" cy="17" r="2" />
+    </>
+  ),
+  back: <path d="M19 12H5m6-6-6 6 6 6" />,
   search: (
     <>
       <circle cx="11" cy="11" r="7" />

@@ -16,7 +16,7 @@ export function FormField({
   children: ReactNode
 }) {
   return (
-    <div className="form-field">
+    <div className="form-field flex flex-col gap-2 min-w-0">
       <label htmlFor={id}>
         {label}
         {required && (
