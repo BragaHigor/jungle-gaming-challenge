@@ -1,0 +1,20 @@
+{
+  "common": {
+    "title": "Marketplace de NFTs",
+    "description": "A experiência está em desenvolvimento.",
+    "language": "Idioma",
+    "home": "Início",
+    "notFound": "Página não encontrada",
+    "skipToContent": "Ir para o conteúdo",
+    "pageTitle": "KURIO | Marketplace de NFTs",
+    "pageDescription": "KURIO — marketplace demonstrativo de NFTs."
+  },
+  "validation": {
+    "title": "Validação de formulário",
+    "description": "Exemplo local de validação. Nenhuma conta será criada e os dados não serão enviados.",
+    "email": "E-mail",
+    "submit": "Validar e-mail",
+    "invalidEmail": "Informe um e-mail válido.",
+    "validEmail": "Formato válido. Nenhum dado foi enviado."
+  }
+}
