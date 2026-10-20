@@ -1,3 +1,4 @@
+import { Select } from '@/components/ui/select'
 import { useTranslation } from 'react-i18next'
 
 export function LanguageSelect({
@@ -10,21 +11,25 @@ export function LanguageSelect({
   const { t, i18n } = useTranslation()
 
   return (
-    <div className="language-select">
+    <div className="language-select flex flex-wrap items-center gap-3">
       <label htmlFor={id} className={compact ? 'sr-only' : undefined}>
         {t('language')}
       </label>
-      <select
+      <Select
         id={id}
         value={i18n.resolvedLanguage ?? 'pt-BR'}
         onChange={(event) => void i18n.changeLanguage(event.target.value)}
-        className={`field-control field-select ${compact ? 'language-select--compact' : ''}`}
+        className={
+          compact
+            ? 'language-select--compact min-h-9 w-21 max-w-full text-[0.75rem]'
+            : 'w-auto max-w-full'
+        }
       >
         <option value="pt-BR">
           {compact ? 'PT-BR' : 'Português (Brasil)'}
         </option>
         <option value="en">{compact ? 'EN' : 'English'}</option>
-      </select>
+      </Select>
     </div>
   )
 }

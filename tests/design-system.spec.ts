@@ -108,7 +108,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     expect(
       await page.evaluate(() => document.fonts.check('16px "Roboto Mono"')),
     ).toBe(true)
-    const artwork = page.getByRole('img', {
+    const artwork = page.locator('.catalog-grid').getByRole('img', {
       name: 'Macaco com óculos redondos e jaqueta verde',
       exact: true,
     })
@@ -128,7 +128,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     await expect(
       page
         .getByRole('main')
-        .getByRole('heading', { name: 'Detalhes do NFT', exact: true }),
+        .getByRole('heading', { name: 'Emerald Ape #042', exact: true }),
     ).toBeVisible()
   })
 

@@ -4,10 +4,10 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { App } from './App'
-import { HomePage } from '@/pages/HomePage'
+import { HomeRoute, NftRoute } from './CatalogRoutes'
+import { presentationSearchSchema } from '@/schemas/presentation'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PageHeading } from '@/pages/PageHeading'
-import { homeCards } from '@/mocks/presentation'
 
 const rootRoute = createRootRoute({
   component: App,
@@ -16,17 +16,21 @@ const rootRoute = createRootRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: () => <HomePage cards={homeCards} />,
+  validateSearch: (search) => presentationSearchSchema.parse(search),
+  component: HomeRoute,
+})
+
+const nftRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/nfts/$nftId',
+  validateSearch: (search) => presentationSearchSchema.parse(search),
+  component: NftRoute,
 })
 
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
     homeRoute,
-    createRoute({
-      getParentRoute: () => rootRoute,
-      path: '/nfts/$nftId',
-      component: () => <PageHeading title="nftTitle" />,
-    }),
+    nftRoute,
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/cart',

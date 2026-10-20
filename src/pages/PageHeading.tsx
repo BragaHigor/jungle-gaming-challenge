@@ -12,5 +12,9 @@ type PageTitle =
 
 export function PageHeading({ title }: { title: PageTitle }) {
   const { t } = useTranslation()
-  return <h1 className="page-heading">{t(title)}</h1>
+  return (
+    <h1 className="page-heading text-[clamp(1.25rem, 3vw, 1.75rem)] font-bold">
+      {t(title)}
+    </h1>
+  )
 }

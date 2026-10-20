@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { cn } from '@/utils/cn'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { LanguageSelect } from '@/components/LanguageSelect'
 import { UnavailableAction } from '@/components/UnavailableAction'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
+import { NavigationMenu } from '@/components/layout/NavigationMenu'
+import { SearchDialog } from '@/components/SearchDialog'
 import { Icon } from '@/components/ui/Icon'
 
 export function Header() {
   const { t } = useTranslation('navigation')
-  const [menuOpen, setMenuOpen] = useState(false)
   const { pathname, hash } = useLocation()
   const marketActive =
     pathname.startsWith('/nfts') ||
@@ -21,14 +21,26 @@ export function Header() {
     <header
       className={`site-header ${marketActive ? 'site-header--plain' : ''}`}
     >
-      <div className="page-container site-header__row">
-        <Link to="/" className="brand" aria-label={`KURIO — ${t('home')}`}>
+      <div
+        className={cn(
+          "page-container w-full max-w-[calc(var(--content-width)_+_var(--page-gutter)_*_2)] ml-auto mr-auto pl-[var(--page-gutter)] pr-[var(--page-gutter)] site-header__row relative grid grid-cols-[1fr_auto_1fr] gap-4 items-center min-h-[2.8125rem] after:content-[''] after:absolute after:bottom-0 after:right-[var(--page-gutter)] after:left-[var(--page-gutter)] after:h-px after:bg-primary after:opacity-50 max-desktop:grid-cols-[1fr_auto] max-desktop:min-h-15 max-tablet:grid-cols-[1fr_auto]",
+          marketActive && 'after:hidden',
+        )}
+      >
+        <Link
+          to="/"
+          className="brand text-foreground text-[0.875rem] font-bold tracking-[0.1em] hover:text-primary-hover"
+          aria-label={`KURIO — ${t('home')}`}
+        >
           KURIO
         </Link>
-        <nav className="desktop-navigation" aria-label={t('main')}>
+        <nav
+          className="desktop-navigation flex items-center gap-2 max-desktop:hidden"
+          aria-label={t('main')}
+        >
           <Link
             to="/"
-            className={`nav-link ${homeActive ? 'is-active' : ''}`}
+            className={`nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold ${homeActive ? 'is-active' : ''}`}
             aria-current={homeActive ? 'page' : undefined}
           >
             {t('home')}
@@ -36,105 +48,40 @@ export function Header() {
           <Link
             to="/"
             hash="marketplace"
-            className={`nav-link ${marketActive ? 'is-active' : ''}`}
+            className={`nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold ${marketActive ? 'is-active' : ''}`}
             aria-current={marketActive ? 'page' : undefined}
           >
             {t('market')}
           </Link>
-          <UnavailableAction className="nav-link">
+          <UnavailableAction className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold">
             {t('creators')}
           </UnavailableAction>
-          <UnavailableAction className="nav-link">
+          <UnavailableAction className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold">
             {t('learn')}
           </UnavailableAction>
         </nav>
-        <div className="site-header__actions">
-          <div className="desktop-language">
+        <div className="site-header__actions flex items-center gap-2 justify-self-end">
+          <div className="desktop-language max-desktop:hidden">
             <LanguageSelect compact />
           </div>
-          <UnavailableAction
-            className="icon-button header-search"
-            aria-label={t('search')}
-          >
-            <Icon name="search" />
-          </UnavailableAction>
+          <SearchDialog />
           <Link
             to="/cart"
-            className="icon-button header-cart"
+            className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 header-cart max-tablet:hidden"
             aria-label={t('cart')}
           >
             <Icon name="cart" />
           </Link>
-          <Button asChild className="header-login min-h-9 px-3 font-medium">
+          <Button
+            asChild
+            className="header-login max-desktop:hidden min-h-9 px-3 font-medium"
+          >
             <Link to="/login">
               <Icon name="login" className="size-5" />
               {t('signIn')}
             </Link>
           </Button>
-          <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
-            <DialogTrigger asChild>
-              <button
-                className="icon-button mobile-menu-trigger"
-                type="button"
-                aria-label={t('menu')}
-              >
-                <Icon name="menu" />
-              </button>
-            </DialogTrigger>
-            <DialogContent
-              placement="right"
-              title={t('menuTitle')}
-              description={t('menuDescription')}
-            >
-              <nav aria-label={t('main')} className="drawer-navigation">
-                <Link
-                  to="/"
-                  className="nav-link"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {t('home')}
-                </Link>
-                <Link
-                  to="/"
-                  hash="marketplace"
-                  className="nav-link"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {t('market')}
-                </Link>
-                <UnavailableAction className="nav-link">
-                  {t('creators')}
-                </UnavailableAction>
-                <UnavailableAction className="nav-link">
-                  {t('learn')}
-                </UnavailableAction>
-                <Link
-                  to="/login"
-                  className="nav-link"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {t('signIn')}
-                </Link>
-                <Link
-                  to="/profile"
-                  className="nav-link"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {t('account')}
-                </Link>
-                <Link
-                  to="/wallets"
-                  className="nav-link"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  {t('wallets')}
-                </Link>
-              </nav>
-              <div className="mt-auto pt-6">
-                <LanguageSelect id="menu-language" />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <NavigationMenu className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 mobile-menu-trigger desktop:hidden max-desktop:inline-grid" />
         </div>
       </div>
     </header>

@@ -15,7 +15,7 @@ export function PasswordField(props: Omit<ComponentProps<'input'>, 'type'>) {
       />
       <button
         type="button"
-        className="icon-button absolute top-0 right-1"
+        className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 absolute top-0 right-1"
         aria-label={t(visible ? 'hidePassword' : 'showPassword')}
         aria-pressed={visible}
         aria-controls={props.id}
