@@ -18,7 +18,7 @@ function synchronizeLanguage(language: string) {
   try {
     localStorage.setItem(storageKey, language)
   } catch {
-    // O idioma continua funcionando quando o armazenamento está indisponível.
+    return
   }
 }
 
