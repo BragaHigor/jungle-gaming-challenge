@@ -1,0 +1,20 @@
+{
+  "common": {
+    "title": "NFT marketplace",
+    "description": "The experience is under development.",
+    "language": "Language",
+    "home": "Home",
+    "notFound": "Page not found",
+    "skipToContent": "Skip to content",
+    "pageTitle": "KURIO | NFT marketplace",
+    "pageDescription": "KURIO — demo NFT marketplace."
+  },
+  "validation": {
+    "title": "Form validation",
+    "description": "Local validation example. No account will be created and no data will be sent.",
+    "email": "Email",
+    "submit": "Validate email",
+    "invalidEmail": "Enter a valid email address.",
+    "validEmail": "Valid format. No data was sent."
+  }
+}
