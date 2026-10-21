@@ -1,0 +1,181 @@
+name: Deploy
+
+on:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validação
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Publicação e smoke
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: ${{ github.ref_name == 'main' && 'prd' || 'hml' }}
+      url: ${{ steps.publish.outputs.url }}
+    outputs:
+      url: ${{ steps.publish.outputs.url }}
+    env:
+      HUSKY: '0'
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_PUBLIC_URL: ${{ vars.VERCEL_PUBLIC_URL }}
+    steps:
+      - name: Obter exatamente o commit validado
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Configurar Node e cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Fixar npm da aplicação
+        run: npm install --global npm@11.6.0
+      - name: Conferir configuração e commit atual da branch
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          for variable in VERCEL_TOKEN VERCEL_ORG_ID VERCEL_PROJECT_ID VERCEL_PUBLIC_URL; do
+            if [[ -z "${!variable}" ]]; then
+              echo "Configuração ausente no ambiente: $variable" >&2
+              exit 1
+            fi
+          done
+          head_sha="$(git ls-remote --exit-code origin "refs/heads/$GITHUB_REF_NAME" | cut -f1)"
+          if [[ "$head_sha" != "$GITHUB_SHA" ]]; then
+            echo 'Este commit foi substituído na branch; executar o run mais recente.' >&2
+            exit 1
+          fi
+          node --input-type=module <<'NODE'
+          const url = new URL(process.env.VERCEL_PUBLIC_URL)
+          if (url.protocol !== 'https:' || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+            throw new Error('VERCEL_PUBLIC_URL deve ser uma origem HTTPS pública.')
+          }
+          NODE
+      - name: Instalar ferramentas do projeto
+        run: npm ci
+      - name: Baixar o build aprovado deste run
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: app-${{ github.sha }}
+          path: dist/
+      - name: Preparar saída estática sem reconstruir o app
+        run: |
+          node --input-type=module <<'NODE'
+          import { cpSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+          const metadata = JSON.parse(readFileSync('dist/deployment.json', 'utf8'))
+          if (metadata.sha !== process.env.GITHUB_SHA || metadata.mocksEnabled !== true) {
+            throw new Error('O artefato não corresponde ao SHA validado com mocks ativos.')
+          }
+          const config = JSON.parse(readFileSync('vercel.json', 'utf8'))
+          mkdirSync('.vercel/output', { recursive: true })
+          cpSync('dist', '.vercel/output/static', { recursive: true })
+          writeFileSync('.vercel/output/config.json', JSON.stringify({ version: 3, routes: config.routes }))
+          NODE
+      - name: Instalar CLI Vercel fixada
+        run: npm install --global vercel@65.0.0
+      - name: Publicar deployment para conferência
+        id: publish
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          production_args=()
+          if [[ "$GITHUB_REF_NAME" == 'main' ]]; then
+            production_args=(--prod --skip-domain)
+          fi
+          deployment_url="$(vercel deploy --prebuilt --yes --token "$VERCEL_TOKEN" --meta "githubCommitSha=$GITHUB_SHA" --meta "githubCommitRef=$GITHUB_REF_NAME" "${production_args[@]}")"
+          if [[ ! "$deployment_url" =~ ^https://[a-zA-Z0-9.-]+\.vercel\.app$ ]]; then
+            echo 'A CLI não retornou uma URL de deployment válida.' >&2
+            exit 1
+          fi
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+      - name: Instalar Chromium para smoke público
+        run: npm exec -- playwright install --with-deps chromium
+      - name: Conferir URL única antes de promover
+        env:
+          DEPLOY_URL: ${{ steps.publish.outputs.url }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: npm run test:deploy
+      - name: Promover URL validada
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          DEPLOY_URL: ${{ steps.publish.outputs.url }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" == 'main' ]]; then
+            vercel promote "$DEPLOY_URL" --yes --token "$VERCEL_TOKEN"
+          else
+            hostname="$(node -e 'console.log(new URL(process.env.VERCEL_PUBLIC_URL).hostname)')"
+            vercel alias set "$DEPLOY_URL" "$hostname" --token "$VERCEL_TOKEN"
+          fi
+      - name: Conferir endereço estável de HML ou PRD
+        env:
+          DEPLOY_URL: ${{ vars.VERCEL_PUBLIC_URL }}
+          DEPLOY_SHA: ${{ github.sha }}
+        run: npm run test:deploy
+      - name: Registrar endereço e SHA
+        env:
+          DEPLOY_URL: ${{ steps.publish.outputs.url }}
+        run: |
+          {
+            echo '### Publicação validada'
+            echo "- Branch: $GITHUB_REF_NAME"
+            echo "- SHA: $GITHUB_SHA"
+            echo "- Deployment: $DEPLOY_URL"
+            echo "- Endereço estável: $VERCEL_PUBLIC_URL"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Guardar relatório do smoke
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: smoke-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            reports/deploy/
+            test-results/deploy/
+          if-no-files-found: warn
+          retention-days: 7
+
+  release-dry-run:
+    name: Prévia de release
+    needs: deploy
+    if: ${{ github.ref_name == 'main' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      HUSKY: '0'
+    steps:
+      - name: Obter histórico e tags do commit publicado
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Configurar Node e cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Fixar npm da aplicação
+        run: npm install --global npm@11.6.0
+      - name: Instalar pelo lockfile
+        run: npm ci
+      - name: Calcular versão e notas sem publicar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release:dry-run
