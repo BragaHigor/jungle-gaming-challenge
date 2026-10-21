@@ -17,8 +17,8 @@ type Client = {
 const clients = new Map<string, Client>()
 export const realtimeHandler = link.addEventListener(
   'connection',
-  (connection) => {
-    const database = readDatabase()
+  async (connection) => {
+    const database = await readDatabase()
     const token = connection.client.url.searchParams.get('session')
     const session = getSession(database, token)
     const generation = connection.client.url.searchParams.get('generation')
@@ -59,7 +59,7 @@ function broadcast(event: ResourceEvent) {
   }
 }
 export async function emitResourceEvent(type: 'nft.updated' | 'order.updated') {
-  const initial = readDatabase()
+  const initial = await readDatabase()
   if (initial.scenario === 'malformed-event') {
     for (const client of clients.values())
       client.bridge.client.emit(type, { type, version: -1, data: null })

@@ -3,6 +3,42 @@ import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
 test.describe('Revisão visual e responsividade', () => {
+  test('mantém o skeleton e o detalhe sem overflow com texto ampliado durante a consulta', async ({
+    page,
+  }) => {
+    await visit(page, '/')
+    await setScenario(page, 'slow')
+    for (const language of ['pt-BR', 'en']) {
+      await page.evaluate(
+        (language) => localStorage.setItem('kurio-language', language),
+        language,
+      )
+      for (const width of [320, 390, 768]) {
+        await page.setViewportSize({ width, height: 844 })
+        await visit(page, '/nfts/emerald-ape-042')
+        await page.evaluate(() => {
+          document.documentElement.style.fontSize = '200%'
+        })
+        await expect(page.locator('.nft-detail-loading')).toBeVisible()
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `skeleton ${language} ${width}`,
+        ).toBe(true)
+        await expect(
+          page.getByRole('heading', { name: 'Emerald Ape #042', exact: true }),
+        ).toBeVisible()
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `detail ${language} ${width}`,
+        ).toBe(true)
+      }
+    }
+  })
+
   test('mantém a mesma grade no catálogo carregado e no skeleton de tablet', async ({
     page,
   }) => {

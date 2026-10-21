@@ -194,46 +194,94 @@ export function createDatabase(scenario: Scenario = 'default'): Database {
     ],
   })
 }
-export function readDatabase(): Database {
-  const stored = localStorage.getItem(storageKey)
-  if (stored) {
-    try {
-      const result = databaseSchema.safeParse(JSON.parse(stored))
-      if (result.success) return result.data
-    } catch {
-      localStorage.removeItem(storageKey)
+const databaseName = 'kurio-mocks'
+const storeName = 'state'
+const recordKey = 'database'
+let connection: Promise<IDBDatabase> | undefined
+
+function openStorage() {
+  connection ??= new Promise<IDBDatabase>((resolve, reject) => {
+    const request = indexedDB.open(databaseName, 1)
+    request.onupgradeneeded = () => request.result.createObjectStore(storeName)
+    request.onerror = () => {
+      connection = undefined
+      reject(request.error)
     }
-  }
-  const fresh = createDatabase()
-  localStorage.setItem(storageKey, JSON.stringify(fresh))
-  return fresh
+    request.onsuccess = () => {
+      const database = request.result
+      database.onversionchange = () => {
+        database.close()
+        connection = undefined
+      }
+      resolve(database)
+    }
+  })
+  return connection
 }
-let queue: Promise<unknown> = Promise.resolve()
-function transaction<T>(action: () => T): Promise<T> {
-  const operation = queue.then(() =>
-    navigator.locks.request(storageKey, action),
-  )
-  queue = operation.catch(() => undefined)
-  return operation
+function readLegacyDatabase() {
+  try {
+    const stored = localStorage.getItem(storageKey)
+    const parsed = databaseSchema.safeParse(stored ? JSON.parse(stored) : null)
+    if (parsed.success) return parsed.data
+  } catch {
+    return createDatabase()
+  }
+  return createDatabase()
+}
+function removeLegacyDatabase() {
+  try {
+    localStorage.removeItem(storageKey)
+  } catch {
+    return
+  }
+}
+async function transaction<T>(
+  action: (database: Database) => T,
+  write = true,
+): Promise<T> {
+  const storage = await openStorage()
+  return new Promise<T>((resolve, reject) => {
+    const operation = storage.transaction(storeName, 'readwrite')
+    const store = operation.objectStore(storeName)
+    const request = store.get(recordKey)
+    let result: T
+    let failure: unknown
+    request.onsuccess = () => {
+      try {
+        const parsed = databaseSchema.safeParse(request.result)
+        const database = parsed.success ? parsed.data : readLegacyDatabase()
+        result = action(database)
+        if (write || !parsed.success)
+          store.put(databaseSchema.parse(database), recordKey)
+      } catch (error) {
+        failure = error
+        operation.abort()
+      }
+    }
+    operation.oncomplete = () => {
+      removeLegacyDatabase()
+      resolve(result)
+    }
+    operation.onabort = () =>
+      reject(
+        failure ?? operation.error ?? new Error('Mock transaction aborted'),
+      )
+    operation.onerror = () => reject(operation.error)
+  })
+}
+export function readDatabase(): Promise<Database> {
+  return transaction((database) => database, false)
 }
 export function updateDatabase<T>(
   change: (database: Database) => T,
 ): Promise<T> {
-  return transaction(() => {
-    const database = readDatabase()
-    const result = change(database)
-    localStorage.setItem(
-      storageKey,
-      JSON.stringify(databaseSchema.parse(database)),
-    )
-    return result
-  })
+  return transaction(change)
 }
 export function resetDatabase(scenario: Scenario) {
-  return transaction(() => {
+  return transaction((database) => {
     const fresh = createDatabase(scenario)
-    localStorage.setItem(storageKey, JSON.stringify(fresh))
-    return getDemoStatus(fresh)
+    Object.assign(database, fresh)
+    return statusFromDatabase(fresh)
   })
 }
 export function getSession(database: Database, token?: string | null) {
@@ -250,7 +298,7 @@ export function getSession(database: Database, token?: string | null) {
     user: { id, username, displayName, email },
   }
 }
-export function getDemoStatus(database = readDatabase()): DemoStatus {
+function statusFromDatabase(database: Database): DemoStatus {
   const token =
     database.scenario === 'pending-order' ? database.sessions[0]?.token : null
   return {
@@ -259,4 +307,8 @@ export function getDemoStatus(database = readDatabase()): DemoStatus {
     session: getSession(database, token),
     pendingOrderId: database.orders[0]?.id ?? null,
   }
+}
+
+export async function getDemoStatus(): Promise<DemoStatus> {
+  return statusFromDatabase(await readDatabase())
 }
