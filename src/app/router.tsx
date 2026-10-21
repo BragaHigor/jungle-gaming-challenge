@@ -9,7 +9,13 @@ import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
 import { ConfirmationPage } from '@/pages/ConfirmationPage'
 import { presentationSearchSchema } from '@/schemas/presentation'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import { PageHeading } from '@/pages/PageHeading'
+import {
+  LoginRoute,
+  RegistrationRoute,
+  ProfileRoute,
+  WalletsRoute,
+} from './AccountRoutes'
+import { accountSearchSchema } from '@/schemas/account'
 
 const rootRoute = createRootRoute({
   component: App,
@@ -30,6 +36,8 @@ const nftRoute = createRoute({
 })
 
 export const router = createRouter({
+  scrollRestoration: true,
+  getScrollRestorationKey: (location) => location.href,
   routeTree: rootRoute.addChildren([
     homeRoute,
     nftRoute,
@@ -52,22 +60,26 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/login',
-      component: () => <PageHeading title="loginTitle" />,
+      validateSearch: (search) => accountSearchSchema.parse(search),
+      component: LoginRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/register',
-      component: () => <PageHeading title="registerTitle" />,
+      validateSearch: (search) => accountSearchSchema.parse(search),
+      component: RegistrationRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/profile',
-      component: () => <PageHeading title="profileTitle" />,
+      validateSearch: (search) => accountSearchSchema.parse(search),
+      component: ProfileRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/wallets',
-      component: () => <PageHeading title="walletsTitle" />,
+      validateSearch: (search) => accountSearchSchema.parse(search),
+      component: WalletsRoute,
     }),
   ]),
 })

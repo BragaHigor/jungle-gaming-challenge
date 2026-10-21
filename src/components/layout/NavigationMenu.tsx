@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { LanguageSelect } from '@/components/LanguageSelect'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { LanguageSelect } from '@/components/shared/LanguageSelect'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Icon } from '@/components/ui/Icon'
 

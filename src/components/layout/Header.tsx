@@ -1,11 +1,11 @@
 import { cn } from '@/utils/cn'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { LanguageSelect } from '@/components/LanguageSelect'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { LanguageSelect } from '@/components/shared/LanguageSelect'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Button } from '@/components/ui/button'
 import { NavigationMenu } from '@/components/layout/NavigationMenu'
-import { SearchDialog } from '@/components/SearchDialog'
+import { SearchDialog } from '@/components/catalog/SearchDialog'
 import { Icon } from '@/components/ui/Icon'
 
 export function Header() {

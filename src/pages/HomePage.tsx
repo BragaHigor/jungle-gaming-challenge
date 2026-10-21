@@ -1,12 +1,15 @@
-import { NftGrid } from '@/components/NftGrid'
+import { NftGrid } from '@/components/catalog/NftGrid'
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { NftCard } from '@/components/NftCard'
-import { CatalogHero } from '@/components/CatalogHero'
-import { CatalogFilters, CatalogSort } from '@/components/CatalogFilters'
-import { CatalogState } from '@/components/CatalogState'
-import { HomeHighlights } from '@/components/HomeHighlights'
+import { NftCard } from '@/components/catalog/NftCard'
+import { CatalogHero } from '@/components/catalog/CatalogHero'
+import {
+  CatalogFilters,
+  CatalogSort,
+} from '@/components/catalog/CatalogFilters'
+import { CatalogState } from '@/components/catalog/CatalogState'
+import { HomeHighlights } from '@/components/catalog/HomeHighlights'
 import {
   Dialog,
   DialogContent,

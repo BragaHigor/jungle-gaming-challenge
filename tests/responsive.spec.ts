@@ -152,3 +152,57 @@ test.describe('Revisão visual e responsividade', () => {
     ).toBeVisible()
   })
 })
+
+test('reserva espaço inferior apenas para a navegação ou ações fixas visíveis', async ({
+  page,
+}) => {
+  for (const width of [390, 699, 700, 768, 1440]) {
+    await page.setViewportSize({ width, height: 844 })
+    for (const route of [
+      '/',
+      '/cart',
+      '/checkout',
+      '/confirmation',
+      '/login',
+      '/register',
+      '/profile',
+      '/wallets',
+      '/nfts/emerald-ape-042',
+    ]) {
+      await page.goto(route)
+      const navigation = page.locator('.mobile-navigation')
+      const showsNavigation =
+        width < 700 && ['/', '/cart', '/profile', '/wallets'].includes(route)
+      await expect(navigation).toBeVisible({ visible: showsNavigation })
+      const padding = await page
+        .locator('.site-layout')
+        .evaluate((element) =>
+          parseFloat(getComputedStyle(element).paddingBottom),
+        )
+      const hasFixedPurchaseActions = width < 700 && route.startsWith('/nfts/')
+      if (hasFixedPurchaseActions) {
+        expect(padding).toBe(200)
+      } else if (await navigation.isVisible()) {
+        expect(padding).toBeGreaterThanOrEqual(128)
+      } else {
+        expect(padding, `${route} ${width}`).toBe(0)
+      }
+    }
+  }
+})
+
+test('mantém o rodapé do carrinho acima do menu inferior', async ({ page }) => {
+  for (const width of [320, 390, 699]) {
+    await page.setViewportSize({ width, height: 844 })
+    await page.goto('/cart')
+    await page.evaluate(() => document.fonts.ready)
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    )
+    const copyright = page.locator('.copyright')
+    await expect(copyright).toBeInViewport()
+    const footerBox = await copyright.boundingBox()
+    const menuBox = await page.locator('.mobile-navigation').boundingBox()
+    expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(menuBox!.y)
+  }
+})

@@ -1,6 +1,6 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { NavigationMenu } from '@/components/layout/NavigationMenu'
 import { Icon } from '@/components/ui/Icon'
 

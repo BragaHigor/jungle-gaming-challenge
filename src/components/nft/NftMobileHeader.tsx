@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { LanguageSelect } from '@/components/LanguageSelect'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { LanguageSelect } from '@/components/shared/LanguageSelect'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Icon } from '@/components/ui/Icon'
 
 export function NftMobileHeader({ title }: { title?: string }) {

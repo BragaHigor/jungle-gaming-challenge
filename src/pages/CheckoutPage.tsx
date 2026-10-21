@@ -8,7 +8,7 @@ import { CollectorFields } from '@/components/purchase/CollectorFields'
 import { WalletSelection } from '@/components/purchase/WalletSelection'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import {
   collectorSchema,
   type CollectorDraft,

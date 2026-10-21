@@ -1,4 +1,4 @@
-import type { NftCardData } from '@/components/NftCard'
+import type { NftCardData } from '@/components/catalog/NftCard'
 
 export const categories = [
   'digitalArt',

@@ -5,19 +5,28 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { MobileNavigation } from '@/components/layout/MobileNavigation'
 
+const mobileNavigationSpace =
+  'max-tablet:pb-[calc(8rem_+_env(safe-area-inset-bottom))]'
+
 const pageClasses = {
-  home: 'site-layout--home max-tablet:[&>.site-header]:hidden',
+  auth: '[&>footer]:hidden max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden',
+  account: `[&>footer]:hidden ${mobileNavigationSpace}`,
+  home: `site-layout--home max-tablet:[&>.site-header]:hidden ${mobileNavigationSpace}`,
   nft: 'site-layout--nft max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-[calc(200px_+_env(safe-area-inset-bottom))] max-tablet:[@media(max-height:500px)]:pb-0 max-tablet:[&_.page-content]:mt-0',
+  cart: `max-tablet:[&>.site-header]:hidden max-tablet:[&_.page-content]:mt-4 ${mobileNavigationSpace}`,
   purchase:
-    'max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-0 max-tablet:[&_.page-content]:mt-4',
+    'max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:[&_.page-content]:mt-4',
 }
 
 const getPageClass = (pathname: string) => {
+  if (['/login', '/register'].includes(pathname)) return pageClasses.auth
+  if (['/profile', '/wallets'].includes(pathname)) return pageClasses.account
   if (pathname === '/') return pageClasses.home
   if (pathname.startsWith('/nfts/')) return pageClasses.nft
-  if (['/cart', '/checkout', '/confirmation'].includes(pathname))
+  if (pathname === '/cart') return pageClasses.cart
+  if (['/checkout', '/confirmation'].includes(pathname))
     return pageClasses.purchase
-  return ''
+  return mobileNavigationSpace
 }
 
 export function App() {
@@ -33,9 +42,7 @@ export function App() {
   }, [t])
 
   return (
-    <div
-      className={`site-layout pt-6 max-tablet:pt-2 max-tablet:pb-[calc(7rem_+_env(safe-area-inset-bottom))] ${pageClass}`}
-    >
+    <div className={`site-layout pt-6 max-tablet:pt-2 ${pageClass}`}>
       <a
         href="#content"
         className="skip-link fixed top-2 left-2 z-100 pt-3 pr-4 pb-3 pl-4 rounded-md bg-primary text-background [transform:translateY(-200%)] focus:[transform:translateY(0)]"

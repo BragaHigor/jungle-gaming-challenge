@@ -1,7 +1,7 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { LanguageSelect } from '@/components/LanguageSelect'
+import { LanguageSelect } from '@/components/shared/LanguageSelect'
 
 export function ConfirmationPage() {
   const { t } = useTranslation('purchase')
