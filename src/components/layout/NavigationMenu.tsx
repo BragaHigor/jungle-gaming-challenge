@@ -1,3 +1,4 @@
+import { DemoControls } from '@/components/demo/DemoControls'
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -76,6 +77,9 @@ export function NavigationMenu({
         </nav>
         <div className="mt-auto pt-6">
           <LanguageSelect id="menu-language" />
+          <div className="mt-4">
+            <DemoControls />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

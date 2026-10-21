@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { expect, test } from '@playwright/test'
 
 const routes = [
@@ -25,7 +26,7 @@ test.describe('Revisão do conjunto visual', () => {
       for (const width of [320, 390, 768]) {
         await page.setViewportSize({ width, height: 844 })
         for (const route of routes) {
-          await page.goto(route)
+          await visit(page, route)
           await page.evaluate(() => document.fonts.ready)
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%'
@@ -45,7 +46,7 @@ test.describe('Revisão do conjunto visual', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/checkout')
+    await visit(page, '/checkout')
     const reserve = page.getByRole('radio', { name: /Reserva/ })
     const main = page.getByRole('radio', { name: /Principal/ })
     await reserve.focus()
@@ -67,18 +68,18 @@ test.describe('Revisão do conjunto visual', () => {
   test('identifica os campos obrigatórios do pagamento e a nova senha no cadastro', async ({
     page,
   }) => {
-    await page.goto('/checkout')
+    await visit(page, '/checkout')
     const name = page.getByRole('textbox', {
       name: 'Nome de exibição',
       exact: true,
     })
     await expect(name).toHaveAttribute('aria-required', 'true')
-    await page.goto('/register')
+    await visit(page, '/register')
     await expect(page.getByLabel(/^Senha\s*\*?$/)).toHaveAttribute(
       'autocomplete',
       'new-password',
     )
-    await page.goto('/login')
+    await visit(page, '/login')
     await expect(page.getByLabel(/^Senha\s*\*?$/)).toHaveAttribute(
       'autocomplete',
       'current-password',
@@ -91,7 +92,7 @@ test('mantém o texto do botão da newsletter em uma única linha', async ({
 }) => {
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 })
-    await page.goto('/')
+    await visit(page, '/')
     await page.evaluate(() => document.fonts.ready)
     const button = page.getByRole('button', { name: 'Enviar', exact: true })
     await button.scrollIntoViewIfNeeded()
@@ -113,7 +114,7 @@ test('alterna a hero com o dedo sem bloquear a rolagem vertical', async ({
   page,
 }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto('/')
+  await visit(page, '/')
   const client = await page.context().newCDPSession(page)
   await client.send('Emulation.setTouchEmulationEnabled', {
     enabled: true,

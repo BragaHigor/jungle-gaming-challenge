@@ -1,27 +1,13 @@
-import type { NftCardData } from '@/components/catalog/NftCard'
+import type { z } from 'zod'
+import type { Nft, catalogQuerySchema } from '@/schemas/api/catalog'
 
-export const categories = [
-  'digitalArt',
-  'photography',
-  'music',
-  'art3d',
-  'collectibles',
-  'generative',
-  'games',
-  'subscriptions',
-  'utility',
-] as const
-export const networks = ['Ethereum', 'Polygon', 'Solana'] as const
-export type Category = (typeof categories)[number]
-export type Network = (typeof networks)[number]
-export type CatalogNft = Omit<NftCardData, 'imageAlt'> & {
-  imageAltKey: 'emeraldAlt' | 'sageAlt' | 'neonAlt' | 'goldenAlt'
-  category: Category
-  network: Network
-  isNew: boolean
-  hot: boolean
-  token: string
-}
+export type Category = Nft['category']
+export type Network = Nft['network']
+export type NftCardData = Pick<
+  Nft,
+  'id' | 'title' | 'image' | 'price' | 'previousPrice' | 'rare'
+> & { imageAlt: string }
+export type CatalogNft = Omit<Nft, 'editions' | 'version' | 'publishedAt'>
 export type ViewState = 'ready' | 'loading' | 'empty' | 'error' | 'unavailable'
-export type CatalogTab = 'all' | 'new' | 'hot'
-export type CatalogSort = 'recent' | 'lowest' | 'highest' | 'name'
+export type CatalogTab = z.output<typeof catalogQuerySchema>['tab']
+export type CatalogSort = z.output<typeof catalogQuerySchema>['sort']

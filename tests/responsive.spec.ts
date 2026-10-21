@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
 test.describe('Revisão visual e responsividade', () => {
@@ -5,14 +6,14 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 768, height: 900 })
-    await page.goto('/')
+    await visit(page, '/')
     const media = page.locator('.catalog-grid .nft-card__media')
     const ready = await Promise.all([
       media.nth(0).boundingBox(),
       media.nth(1).boundingBox(),
       media.nth(2).boundingBox(),
     ])
-    await page.goto('/?view=loading')
+    await visit(page, '/?view=loading')
     const loading = page.locator('.catalog-main .nft-card__media')
     for (const index of [0, 1, 2]) {
       const box = await loading.nth(index).boundingBox()
@@ -30,7 +31,7 @@ test.describe('Revisão visual e responsividade', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.goto('/nfts/emerald-ape-042?view=loading')
+    await visit(page, '/nfts/emerald-ape-042?view=loading')
     await expect(page.getByRole('status')).toHaveText('Carregando NFT…')
     await expect(page.locator('.nft-detail-loading')).toHaveAttribute(
       'aria-busy',
@@ -60,7 +61,7 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 666, height: 375 })
-    await page.goto('/nfts/emerald-ape-042')
+    await visit(page, '/nfts/emerald-ape-042')
     const trigger = page.getByRole('button', {
       name: 'Ampliar Emerald Ape #042',
       exact: true,
@@ -86,7 +87,7 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 666, height: 375 })
-    await page.goto('/nfts/emerald-ape-042')
+    await visit(page, '/nfts/emerald-ape-042')
     const panel = page.locator('.mobile-purchase')
     await expect(panel).toHaveCSS('position', 'static')
     await panel
@@ -106,7 +107,7 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/wallets')
+    await visit(page, '/wallets')
     await page
       .getByRole('navigation', { name: 'Navegação mobile', exact: true })
       .getByRole('link', { name: 'Minha conta', exact: true })
@@ -124,7 +125,7 @@ test.describe('Revisão visual e responsividade', () => {
   }) => {
     await page.setViewportSize({ width: 320, height: 568 })
     await page.addInitScript(() => localStorage.setItem('kurio-language', 'en'))
-    await page.goto('/')
+    await visit(page, '/')
     await page.getByRole('button', { name: 'Open menu', exact: true }).click()
     const menu = page.getByRole('dialog', { name: 'Menu', exact: true })
     await menu
@@ -134,7 +135,7 @@ test.describe('Revisão visual e responsividade', () => {
       menu.getByRole('combobox', { name: 'Language', exact: true }),
     ).toBeInViewport()
     await page.keyboard.press('Escape')
-    await page.goto('/nfts/golden-frequency-071')
+    await visit(page, '/nfts/golden-frequency-071')
     await expect(
       page.getByRole('heading', { name: 'Golden Frequency #071', exact: true }),
     ).toBeVisible()
@@ -143,7 +144,7 @@ test.describe('Revisão visual e responsividade', () => {
         () => document.documentElement.scrollWidth <= innerWidth,
       ),
     ).toBe(true)
-    await page.goto('/nfts/inexistente')
+    await visit(page, '/nfts/inexistente')
     await expect(
       page.getByRole('heading', { name: 'NFT unavailable', level: 1 }),
     ).toBeVisible()
@@ -169,7 +170,7 @@ test('reserva espaço inferior apenas para a navegação ou ações fixas visív
       '/wallets',
       '/nfts/emerald-ape-042',
     ]) {
-      await page.goto(route)
+      await visit(page, route)
       const navigation = page.locator('.mobile-navigation')
       const showsNavigation =
         width < 700 && ['/', '/cart', '/profile', '/wallets'].includes(route)
@@ -194,7 +195,7 @@ test('reserva espaço inferior apenas para a navegação ou ações fixas visív
 test('mantém o rodapé do carrinho acima do menu inferior', async ({ page }) => {
   for (const width of [320, 390, 699]) {
     await page.setViewportSize({ width, height: 844 })
-    await page.goto('/cart')
+    await visit(page, '/cart')
     await page.evaluate(() => document.fonts.ready)
     await page.evaluate(() =>
       window.scrollTo(0, document.documentElement.scrollHeight),

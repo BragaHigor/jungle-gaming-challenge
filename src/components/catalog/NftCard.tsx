@@ -1,18 +1,9 @@
+import type { NftCardData } from '@/types/catalog'
 import { cn } from '@/utils/cn'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Icon } from '@/components/ui/Icon'
 import { Skeleton } from '@/components/ui/skeleton'
-
-export type NftCardData = {
-  id: string
-  title: string
-  image: string
-  imageAlt: string
-  price: string
-  previousPrice?: string
-  rare?: boolean
-}
 
 export function NftCard({
   nft,

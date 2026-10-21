@@ -1,3 +1,4 @@
+import { DemoControls } from '@/components/demo/DemoControls'
 import { useState, type FormEvent } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -196,6 +197,9 @@ export function Footer() {
             </p>
           </section>
         </div>
+      </div>
+      <div className="mt-5 text-center">
+        <DemoControls />
       </div>
       <p className="copyright pt-5 pb-6 text-center">{t('copyright')}</p>
     </footer>
