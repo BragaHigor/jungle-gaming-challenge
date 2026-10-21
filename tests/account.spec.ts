@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import path from 'node:path'
 
@@ -11,7 +12,7 @@ const setLanguage = async (page: Page, locale: string) => {
   await selector.selectOption(locale)
   if (await page.getByRole('dialog', { name: 'Menu', exact: true }).count())
     await page.keyboard.press('Escape')
-  if (isAuth) await page.goto(route)
+  if (isAuth) await visit(page, route)
 }
 const fillProfile = async (page: Page) => {
   await page
@@ -40,7 +41,7 @@ test.describe('Visual de autenticação e conta', () => {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method()))
         writes.push(request.url())
     })
-    await page.goto('/login')
+    await visit(page, '/login')
     const dialog = page.getByRole('dialog', { name: 'Entrar', exact: true })
     await expect(dialog).toBeFocused()
     await expect(dialog.getByRole('combobox')).toHaveCount(0)
@@ -82,7 +83,7 @@ test.describe('Visual de autenticação e conta', () => {
   test('valida confirmação do cadastro e mantém os erros traduzidos', async ({
     page,
   }) => {
-    await page.goto('/register')
+    await visit(page, '/register')
     await page
       .getByRole('textbox', { name: 'Nome de usuário', exact: true })
       .fill('Higor')
@@ -128,7 +129,7 @@ test.describe('Visual de autenticação e conta', () => {
   test('valida a alteração de senha sem salvar perfil nem credenciais', async ({
     page,
   }) => {
-    await page.goto('/profile')
+    await visit(page, '/profile')
     await fillProfile(page)
     await page.getByLabel('Nova senha', { exact: true }).fill('NovaSenha123')
     await page.getByRole('button', { name: 'Salvar', exact: true }).click()
@@ -166,7 +167,7 @@ test.describe('Visual de autenticação e conta', () => {
   test('valida o avatar e permite prévia e remoção local da imagem', async ({
     page,
   }) => {
-    await page.goto('/profile')
+    await visit(page, '/profile')
     const upload = page.getByLabel('Escolher imagem do avatar', { exact: true })
     await upload.setInputFiles({
       name: 'arquivo.txt',
@@ -206,7 +207,7 @@ test.describe('Visual de autenticação e conta', () => {
   test('edita o rascunho de carteira e mantém as ações sem persistência fictícia', async ({
     page,
   }) => {
-    await page.goto('/wallets?view=ready')
+    await visit(page, '/wallets?view=ready')
     await page
       .getByRole('button', { name: 'Editar Reserva', exact: true })
       .click()
@@ -265,30 +266,30 @@ test.describe('Visual de autenticação e conta', () => {
   test('apresenta carregamento, falha, ausência de sessão e sessão expirada', async ({
     page,
   }) => {
-    await page.goto('/profile?view=loading')
+    await visit(page, '/profile?view=loading')
     await expect(
       page.getByLabel('Carregando dados da conta', { exact: true }),
     ).toHaveAttribute('aria-busy', 'true')
     await expect(
       page.getByRole('button', { name: 'Salvar', exact: true }),
     ).toHaveCount(0)
-    await page.goto('/wallets?view=error')
+    await visit(page, '/wallets?view=error')
     await page
       .getByRole('button', { name: 'Tentar novamente', exact: true })
       .click()
     await expect(
       page.getByRole('button', { name: 'Salvar carteira', exact: true }),
     ).toBeVisible()
-    await page.goto('/profile?view=expired')
+    await visit(page, '/profile?view=expired')
     await expect(
       page.getByRole('heading', { name: 'Sua sessão expirou', exact: true }),
     ).toBeVisible()
     await expect(page.getByRole('textbox')).toHaveCount(0)
-    await page.goto('/wallets?view=signedOut')
+    await visit(page, '/wallets?view=signedOut')
     await expect(
       page.getByRole('heading', { name: 'Entre para continuar', exact: true }),
     ).toBeVisible()
-    await page.goto('/login?view=loading')
+    await visit(page, '/login?view=loading')
     await expect(
       page.getByRole('button', { name: 'Aguarde…', exact: true }),
     ).toBeDisabled()
@@ -300,7 +301,7 @@ test.describe('Visual de autenticação e conta', () => {
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 896 })
       for (const route of ['/login', '/register', '/profile', '/wallets']) {
-        await page.goto(route)
+        await visit(page, route)
         for (const locale of ['pt-BR', 'en']) {
           await setLanguage(page, locale)
           expect(
@@ -315,7 +316,7 @@ test.describe('Visual de autenticação e conta', () => {
   })
 
   test('restaura o scroll ao fechar login e cadastro', async ({ page }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await page.evaluate(() => window.scrollTo(0, 500))
     await expect
       .poll(() => page.evaluate(() => window.scrollY))
@@ -355,7 +356,7 @@ test.describe('Visual de autenticação e conta', () => {
   test('mantém foco e rolagem do diálogo em telas baixas', async ({ page }) => {
     for (const width of [390, 844, 1440]) {
       await page.setViewportSize({ width, height: 390 })
-      await page.goto('/register')
+      await visit(page, '/register')
       const dialog = page.getByRole('dialog', {
         name: 'Criar perfil de colecionador',
         exact: true,

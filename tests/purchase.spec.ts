@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
@@ -21,7 +22,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('recalcula quantidades e remoções com precisão e permite esvaziar o carrinho', async ({
     page,
   }) => {
-    await page.goto('/cart')
+    await visit(page, '/cart')
     const items = page.getByRole('region', { name: 'Seus NFTs', exact: true })
     const summary = page.getByRole('region', {
       name: 'Resumo da carteira',
@@ -48,7 +49,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('valida o cupom vazio e não inventa um desconto aplicado', async ({
     page,
   }) => {
-    await page.goto('/cart')
+    await visit(page, '/cart')
     await page.getByRole('button', { name: 'Aplicar', exact: true }).click()
     await expect(
       page.getByRole('textbox', { name: 'Código promocional', exact: true }),
@@ -74,19 +75,19 @@ test.describe('Visual do fluxo de compra', () => {
   test('trata carregamento, erro recuperável e vazio sem liberar a finalização', async ({
     page,
   }) => {
-    await page.goto('/cart?view=loading')
+    await visit(page, '/cart?view=loading')
     await expect(
       page.getByRole('region', { name: 'Resumo da carteira' }),
     ).toHaveAttribute('aria-busy', 'true')
     await expect(
       page.getByRole('button', { name: 'Conectar e finalizar' }),
     ).toBeDisabled()
-    await page.goto('/cart?view=error')
+    await visit(page, '/cart?view=error')
     await page.getByRole('button', { name: 'Tentar novamente' }).click()
     await expect(
       page.getByRole('region', { name: 'Resumo da carteira' }),
     ).toBeVisible()
-    await page.goto('/cart?view=empty')
+    await visit(page, '/cart?view=empty')
     await expect(
       page.getByRole('heading', { name: 'Seu carrinho está vazio' }),
     ).toBeVisible()
@@ -100,7 +101,7 @@ test.describe('Visual do fluxo de compra', () => {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method()))
         writes.push(request.url())
     })
-    await page.goto('/checkout')
+    await visit(page, '/checkout')
     await page
       .getByRole('button', { name: 'Revisar compra', exact: true })
       .click()
@@ -159,7 +160,7 @@ test.describe('Visual do fluxo de compra', () => {
       page.getByRole('button', { name: 'Revisar compra', exact: true }),
     ).toBeFocused()
     expect(writes).toEqual([])
-    await page.goto('/confirmation?status=confirmed')
+    await visit(page, '/confirmation?status=confirmed')
     await expect(
       page.getByRole('heading', { name: 'Nenhum pedido para exibir' }),
     ).toBeVisible()
@@ -171,7 +172,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('traduz os erros e valida o endereço conforme a rede escolhida', async ({
     page,
   }) => {
-    await page.goto('/checkout')
+    await visit(page, '/checkout')
     await page
       .getByRole('combobox', { name: 'Rede', exact: true })
       .selectOption('Solana')
@@ -220,7 +221,7 @@ test.describe('Visual do fluxo de compra', () => {
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       for (const path of ['/cart', '/checkout', '/confirmation']) {
-        await page.goto(path)
+        await visit(page, path)
         for (const locale of ['pt-BR', 'en']) {
           await language(page, locale)
           expect(
@@ -248,7 +249,7 @@ test.describe('Visual do fluxo de compra', () => {
     const html = await (await request.get('/')).text()
     const css = html.match(/href="([^"]+\.css)"/)?.[1]
     expect(css).toBeTruthy()
-    await page.goto('/confirmation')
+    await visit(page, '/confirmation')
     const order: OrderSnapshot = {
       id: 'DEMO-042',
       status: 'confirmed',

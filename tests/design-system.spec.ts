@@ -1,10 +1,11 @@
+import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
 test.describe('Componentes compartilhados e identidade visual', () => {
   test('abre as opções do seletor e preserva escolha e foco pelo teclado', async ({
     page,
   }) => {
-    await page.goto('/checkout')
+    await visit(page, '/checkout')
     const select = page.getByRole('combobox', { name: 'Rede', exact: true })
     await select.click()
     await page.getByRole('option', { name: 'Solana', exact: true }).click()
@@ -23,7 +24,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/')
+    await visit(page, '/')
     const trigger = page.getByRole('button', {
       name: 'Abrir menu',
       exact: true,
@@ -36,7 +37,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     ).toBeFocused()
     await page.keyboard.press('Shift+Tab')
     await expect(
-      drawer.getByRole('combobox', { name: 'Idioma', exact: true }),
+      drawer.getByRole('button', { name: 'Demonstração', exact: true }),
     ).toBeFocused()
     await page.keyboard.press('Tab')
     await expect(
@@ -51,7 +52,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
-    await page.goto('/')
+    await visit(page, '/')
     await page.getByRole('button', { name: 'Abrir menu', exact: true }).click()
     const drawer = page.getByRole('dialog', { name: 'Menu', exact: true })
     await drawer.getByRole('link', { name: 'Carteiras', exact: true }).click()
@@ -68,7 +69,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
   test('informa ações fora do escopo sem apresentar sucesso falso', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     const trigger = page
       .getByRole('contentinfo')
       .getByRole('button', { name: 'Como comprar NFTs', exact: true })
@@ -93,7 +94,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 414, height: 896 })
-    await page.goto('/')
+    await visit(page, '/')
     await page.getByRole('button', { name: 'Abrir menu', exact: true }).click()
     const drawer = page.getByRole('dialog', { name: 'Menu', exact: true })
     const trigger = drawer.getByRole('button', {
@@ -121,7 +122,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
       )
         externalRequests.push(request.url())
     })
-    await page.goto('/')
+    await visit(page, '/')
     await page.evaluate(() => document.fonts.ready)
     expect(
       await page.evaluate(() => document.fonts.check('16px "Roboto Mono"')),
@@ -155,7 +156,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 })
-      await page.goto('/')
+      await visit(page, '/')
       await page.evaluate(() => document.fonts.ready)
       expect(
         await page.evaluate(
@@ -187,7 +188,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     page,
   }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await page.goto('/')
+    await visit(page, '/')
     await page.keyboard.press('Tab')
     await expect(
       page.getByRole('link', { name: 'Ir para o conteúdo', exact: true }),

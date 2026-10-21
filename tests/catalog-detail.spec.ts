@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 
 async function openFilters(page: Page) {
@@ -20,7 +21,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
     page,
     isMobile,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     if (isMobile)
       await page
         .getByRole('searchbox', { name: 'Buscar NFTs' })
@@ -47,7 +48,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
   test('combina rede e categoria, mantém filtros ao fechar e reinicia a paginação', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await page.getByRole('button', { name: 'Página 2', exact: true }).click()
     await expect(
       page.locator('.catalog-pagination [aria-current="page"]'),
@@ -76,7 +77,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
     page,
     isMobile,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     const filters = await openFilters(page)
     const sort = isMobile
       ? filters.getByRole('combobox', { name: 'Ordenar por:' })
@@ -104,7 +105,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
   test('muda a arte do destaque e navega entre páginas do catálogo', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await page
       .getByRole('button', { name: 'Próxima página', exact: true })
       .click()
@@ -130,7 +131,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
   test('amplia a galeria, seleciona recorte e retorna o foco', async ({
     page,
   }) => {
-    await page.goto('/nfts/emerald-ape-042')
+    await visit(page, '/nfts/emerald-ape-042')
     const trigger = page.getByRole('button', {
       name: 'Ampliar Emerald Ape #042',
     })
@@ -157,7 +158,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
     page,
     isMobile,
   }) => {
-    await page.goto('/nfts/emerald-ape-042')
+    await visit(page, '/nfts/emerald-ape-042')
     const increase = page.getByRole('button', {
       name: 'Aumentar quantidade',
       exact: true,
@@ -202,23 +203,23 @@ test.describe('Visual do catálogo e dos detalhes', () => {
   test('renderiza estados visuais e recupera de erro sem simular uma compra', async ({
     page,
   }) => {
-    await page.goto('/?view=empty')
+    await visit(page, '/?view=empty')
     await expect(
       page.getByRole('heading', { name: 'Nenhum NFT encontrado' }),
     ).toBeVisible()
-    await page.goto('/?view=loading')
+    await visit(page, '/?view=loading')
     await expect(
       page
         .getByRole('status', { name: '', exact: true })
         .filter({ hasText: 'Carregando NFTs' }),
     ).toHaveCount(1)
     await expect(page.locator('.catalog-main [aria-busy="true"]')).toBeVisible()
-    await page.goto('/?view=error')
+    await visit(page, '/?view=error')
     await page
       .getByRole('button', { name: 'Tentar novamente', exact: true })
       .click()
     await expect(page.locator('.catalog-grid article')).toHaveCount(9)
-    await page.goto('/nfts/inexistente')
+    await visit(page, '/nfts/inexistente')
     await expect(
       page.getByRole('heading', { name: 'NFT indisponível', exact: true }),
     ).toBeVisible()
@@ -233,7 +234,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       page,
     }) => {
       await page.setViewportSize({ width, height: 900 })
-      await page.goto('/nfts/emerald-ape-042')
+      await visit(page, '/nfts/emerald-ape-042')
       if (width >= 700 && width < 1100)
         await page
           .getByRole('button', { name: 'Abrir menu', exact: true })

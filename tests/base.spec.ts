@@ -1,3 +1,4 @@
+import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import ptBR from '../src/i18n/locales/pt-BR.json' with { type: 'json' }
 import en from '../src/i18n/locales/en.json' with { type: 'json' }
@@ -22,7 +23,7 @@ test.describe('Base executável do marketplace', () => {
   }) => {
     const errors: string[] = []
     page.on('pageerror', (error) => errors.push(error.message))
-    await page.goto('/')
+    await visit(page, '/')
     await expect(
       page.getByRole('heading', { name: 'Marketplace de NFTs', exact: true }),
     ).toBeVisible()
@@ -34,7 +35,7 @@ test.describe('Base executável do marketplace', () => {
   test('preserva o idioma após atualizar e retorna ao português', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await selectLanguage(page, 'en')
     await expect(
       page.getByRole('heading', { name: 'NFT marketplace', exact: true }),
@@ -53,7 +54,7 @@ test.describe('Base executável do marketplace', () => {
     page,
   }) => {
     await page.addInitScript(() => localStorage.setItem('kurio-language', 'fr'))
-    await page.goto('/')
+    await visit(page, '/')
     await expect(await languageSelect(page)).toHaveValue('pt-BR')
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR')
   })
@@ -61,7 +62,7 @@ test.describe('Base executável do marketplace', () => {
   test('valida o email com Zod e traduz o feedback existente', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await page
       .getByRole('textbox', { name: 'E-mail para novidades', exact: true })
       .fill('invalido')
@@ -89,7 +90,7 @@ test.describe('Base executável do marketplace', () => {
   })
 
   test('abre uma rota inexistente e retorna ao início', async ({ page }) => {
-    await page.goto('/nao-existe')
+    await visit(page, '/nao-existe')
     await expect(
       page.getByRole('heading', {
         name: '404 — Página não encontrada',
@@ -109,7 +110,7 @@ test.describe('Base executável do marketplace', () => {
   test('permite validar um campo usando somente o teclado', async ({
     page,
   }) => {
-    await page.goto('/')
+    await visit(page, '/')
     await page
       .getByRole('textbox', { name: 'E-mail para novidades', exact: true })
       .focus()
@@ -135,7 +136,7 @@ test.describe('Base executável do marketplace', () => {
         Object.values(en[namespace]).every((text) => text.trim().length > 0),
       ).toBe(true)
     }
-    await page.goto('/')
+    await visit(page, '/')
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,

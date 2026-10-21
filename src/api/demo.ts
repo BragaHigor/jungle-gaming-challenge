@@ -1,0 +1,34 @@
+import { demoStatusSchema, type Scenario } from '@/schemas/demo'
+import { orderSchema } from '@/schemas/api/purchase'
+import { authorization, client, parseResponse } from './client'
+
+export async function getDemoStatus(signal?: AbortSignal) {
+  return parseResponse(
+    demoStatusSchema,
+    (await client.get<unknown>('/demo', { signal })).data,
+  )
+}
+export async function resetDemo(scenario: Scenario) {
+  return parseResponse(
+    demoStatusSchema,
+    (await client.post<unknown>('/demo/reset', { scenario })).data,
+  )
+}
+export async function emitDemoEvent(type: 'nft.updated' | 'order.updated') {
+  await client.post('/demo/events', { type })
+}
+export async function getDemoOrder(
+  id: string,
+  token: string,
+  signal?: AbortSignal,
+) {
+  return parseResponse(
+    orderSchema,
+    (
+      await client.get<unknown>(`/orders/${encodeURIComponent(id)}`, {
+        signal,
+        headers: authorization(token),
+      })
+    ).data,
+  )
+}
