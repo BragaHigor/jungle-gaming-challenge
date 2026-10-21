@@ -165,13 +165,15 @@ test.describe('Visual do fluxo de compra', () => {
       review.getByText('MetaMask · Ethereum', { exact: true }),
     ).toBeVisible()
     await expect(review.getByText('26.846 ETH', { exact: true })).toBeVisible()
-    await review
-      .getByRole('button', { name: 'Confirmar compra', exact: true })
-      .click()
     await expect(
-      page.getByRole('dialog', { name: 'Conteúdo indisponível', exact: true }),
-    ).toBeVisible()
-    await page.keyboard.press('Escape')
+      review.getByRole('button', { name: 'Confirmar compra', exact: true }),
+    ).toBeDisabled()
+    await expect(
+      review.getByRole('button', {
+        name: 'Conectar carteira simulada',
+        exact: true,
+      }),
+    ).toBeEnabled()
     await page.keyboard.press('Escape')
     await expect(
       page.getByRole('button', { name: 'Revisar compra', exact: true }),

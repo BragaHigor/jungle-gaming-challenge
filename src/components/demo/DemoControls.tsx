@@ -12,6 +12,7 @@ import { Select } from '@/components/ui/select'
 
 function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const { t } = useTranslation('demo')
+  const { t: purchase } = useTranslation('purchase')
   const { session } = useSession()
   const { status, order, reset, emit, connected, lastEvent, invalidEvents } =
     useDemo()
@@ -46,6 +47,8 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
       scenario !== excludedScenario &&
       !isCartScenario(scenario) &&
       !scenario.startsWith('account-') &&
+      !scenario.startsWith('order-') &&
+      scenario !== 'connection-refused' &&
       (!isPrivateScenario(scenario) || session),
   )
   const accountScenarios = session
@@ -57,6 +60,16 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
     visibleScenarios = [...accountScenarios, ...accountResourceScenarios]
   if (pathname === '/cart' || pathname === '/checkout')
     visibleScenarios = [...accountScenarios, ...cartScenarios]
+  if (session && (pathname === '/checkout' || pathname === '/confirmation'))
+    visibleScenarios = [
+      ...visibleScenarios,
+      'order-read-failure',
+      'order-confirmed',
+      'order-declined',
+      'order-timeout',
+      'order-pending',
+      'connection-refused',
+    ]
   const candidate = selection ?? status.data?.scenario ?? 'default'
   const selected = visibleScenarios.some((scenario) => scenario === candidate)
     ? candidate
@@ -119,7 +132,7 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
           aria-label={t('order')}
           className="space-y-2 rounded-md border border-input p-4"
         >
-          <p>{t('pending')}</p>
+          <p>{purchase(order.data.status)}</p>
           <p className="text-xs text-secondary">
             {t('version', { version: order.data.version })}
           </p>
@@ -137,7 +150,12 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
         </Button>
         <Button
           variant="outline"
-          disabled={pending || !connected || !order.data}
+          disabled={
+            pending ||
+            !connected ||
+            !order.data ||
+            order.data.status !== 'pending'
+          }
           onClick={() => emit.mutate('order.updated')}
         >
           {t('changeOrder')}

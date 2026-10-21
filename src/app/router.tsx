@@ -75,6 +75,13 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/confirmation',
+      validateSearch: (search: Record<string, unknown>) => ({
+        orderId:
+          typeof search.orderId === 'string' &&
+          /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$/.test(search.orderId)
+            ? search.orderId
+            : undefined,
+      }),
       beforeLoad: requireAccount,
       component: ConfirmationPage,
     }),

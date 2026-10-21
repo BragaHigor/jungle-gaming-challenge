@@ -1,3 +1,4 @@
+import { orderHandlers } from './order-handlers'
 import { accountHandlers } from './account-handlers'
 import { currentCart } from './cart'
 import { cartHandlers } from './cart-handlers'
@@ -10,10 +11,6 @@ import {
   registrationRequestSchema,
   favoriteRequestSchema,
 } from '@/schemas/api/account'
-import {
-  idempotencyKeySchema,
-  orderRequestSchema,
-} from '@/schemas/api/purchase'
 import {
   getDemoStatus,
   readDatabase,
@@ -51,18 +48,6 @@ const privateReads = [
       })
     }),
   ),
-  http.get('/api/orders/:id', ({ request, params }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      const id = parseInput(resourceIdSchema, params.id)
-      const order = (await readDatabase()).orders.find(
-        (value) => value.id === id,
-      )
-      if (!order) return failure('NOT_FOUND', 404)
-      if (order.userId !== session.user.id) return failure('FORBIDDEN', 403)
-      return json(order)
-    }),
-  ),
 ]
 export const handlers = [
   http.get('/api/demo', ({ request }) =>
@@ -80,6 +65,26 @@ export const handlers = [
         demoRequestSchema,
         await jsonBody(request),
       )
+      if (scenario.startsWith('order-') || scenario === 'connection-refused') {
+        await updateDatabase((database) => {
+          const { user } = requireUser(database, request)
+          const faults = {
+            'order-read-failure': 'read-failure',
+            'order-confirmed': 'ready',
+            'order-declined': 'declined',
+            'order-timeout': 'timeout',
+            'order-pending': 'pending',
+            'connection-refused': 'connection-refused',
+          } as const
+          database.orderFaults[user.id] =
+            faults[scenario as keyof typeof faults]
+        })
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
       if (scenario.startsWith('account-')) {
         await updateDatabase((database) => {
           const { user } = requireUser(database, request)
@@ -282,13 +287,6 @@ export const handlers = [
       return json(result)
     }),
   ),
-  http.post('/api/orders', ({ request }) =>
-    respond(async () => {
-      await requireSession(request)
-      parseInput(idempotencyKeySchema, request.headers.get('Idempotency-Key'))
-      parseInput(orderRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
-    }),
-  ),
+  ...orderHandlers,
   http.all('/api/*', () => failure('NOT_FOUND', 404)),
 ]

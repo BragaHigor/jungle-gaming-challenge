@@ -32,6 +32,12 @@ export const scenarios = [
   'account-write-failure',
   'account-validation',
   'account-ready',
+  'order-read-failure',
+  'order-confirmed',
+  'order-declined',
+  'order-timeout',
+  'order-pending',
+  'connection-refused',
 ] as const
 export const scenarioSchema = z.enum(scenarios)
 export const demoRequestSchema = z.strictObject({ scenario: scenarioSchema })
