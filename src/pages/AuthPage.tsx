@@ -252,6 +252,12 @@ export function AuthPage({
                   onChange={change}
                   compact
                   passwordHint={isRegister}
+                  placeholders={{
+                    username: t('registerUsernamePlaceholder'),
+                    email: t(`${mode}EmailPlaceholder`),
+                    password: t(`${mode}PasswordPlaceholder`),
+                    confirm: t('registerConfirmPlaceholder'),
+                  }}
                   className="gap-y-3"
                 />
                 {!isRegister && (

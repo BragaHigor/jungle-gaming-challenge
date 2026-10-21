@@ -1,3 +1,5 @@
+import { currentCart } from './cart'
+import { cartHandlers } from './cart-handlers'
 import { http, HttpResponse } from 'msw'
 import { catalogResponseSchema, nftSchema } from '@/schemas/api/catalog'
 import { demoRequestSchema, demoEventRequestSchema } from '@/schemas/demo'
@@ -8,10 +10,8 @@ import {
   favoriteRequestSchema,
 } from '@/schemas/api/account'
 import {
-  cartItemRequestSchema,
   idempotencyKeySchema,
   orderRequestSchema,
-  quoteRequestSchema,
 } from '@/schemas/api/purchase'
 import {
   getDemoStatus,
@@ -99,6 +99,60 @@ export const handlers = [
         demoRequestSchema,
         await jsonBody(request),
       )
+      const cartScenarios = [
+        'cart-empty',
+        'coupon-invalid',
+        'coupon-expired',
+        'quote-failure',
+        'cart-price-change',
+        'cart-stock-change',
+        'cart-ready',
+        'cart-slow',
+      ]
+      if (cartScenarios.includes(scenario)) {
+        if (
+          scenario === 'cart-price-change' ||
+          scenario === 'cart-stock-change'
+        ) {
+          const database = await readDatabase()
+          const cart = currentCart(database, request)
+          const item = cart.items[0]
+          await emitResourceEvent('nft.updated', request, {
+            nftId: item?.nftId ?? database.nfts[0].id,
+            editionId: item?.editionId ?? '1/50',
+            soldOut: scenario === 'cart-stock-change',
+          })
+        } else {
+          await updateDatabase((database) => {
+            const cart = currentCart(database, request)
+            if (scenario === 'cart-empty') {
+              cart.items = []
+              cart.coupon = null
+              cart.version++
+              return
+            }
+            if (scenario === 'cart-ready') {
+              delete database.cartFaults[cart.id]
+              return
+            }
+            if (scenario === 'cart-slow') {
+              database.cartFaults[cart.id] = 'slow'
+              return
+            }
+            if (
+              scenario === 'coupon-invalid' ||
+              scenario === 'coupon-expired' ||
+              scenario === 'quote-failure'
+            )
+              database.cartFaults[cart.id] = scenario
+          })
+        }
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
       if (
         ['session-expired', 'favorites-failure', 'favorites-ready'].includes(
           scenario,
@@ -163,16 +217,7 @@ export const handlers = [
       return json(parseInput(nftSchema, nft))
     }),
   ),
-  http.get('/api/cart', ({ request }) =>
-    respond(async () => {
-      const userId = request.headers.has('Authorization')
-        ? (await requireSession(request)).user.id
-        : null
-      return json(
-        (await readDatabase()).carts.find((cart) => cart.userId === userId),
-      )
-    }),
-  ),
+  ...cartHandlers,
   ...privateReads,
   http.post('/api/auth/login', ({ request }) =>
     respond(async () => {
@@ -234,19 +279,6 @@ export const handlers = [
         return { userId, nftIds, version }
       })
       return json(result)
-    }),
-  ),
-  http.post('/api/cart/items', ({ request }) =>
-    respond(async () => {
-      parseInput(cartItemRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
-    }),
-  ),
-  http.post('/api/quotes', ({ request }) =>
-    respond(async () => {
-      await requireSession(request)
-      parseInput(quoteRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
     }),
   ),
   http.post('/api/orders', ({ request }) =>

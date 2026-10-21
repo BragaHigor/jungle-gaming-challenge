@@ -10,7 +10,6 @@ import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
 import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
 import { ConfirmationPage } from '@/pages/ConfirmationPage'
-import { presentationSearchSchema } from '@/schemas/presentation'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import {
   LoginRoute,
@@ -65,7 +64,6 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/cart',
-      validateSearch: (search) => presentationSearchSchema.parse(search),
       component: CartRoute,
     }),
     createRoute({

@@ -18,6 +18,10 @@ export const errorCodes = [
   'UNAVAILABLE',
   'NOT_IMPLEMENTED',
   'SCENARIO_RESET',
+  'STOCK_CHANGED',
+  'CART_CHANGED',
+  'COUPON_INVALID',
+  'COUPON_EXPIRED',
 ] as const
 export const apiErrorSchema = z.strictObject({
   error: z.strictObject({

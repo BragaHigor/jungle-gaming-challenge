@@ -52,15 +52,21 @@ export function useDemoController() {
         if (online) {
           void cache.invalidateQueries({ queryKey: ['nfts'] })
           void cache.invalidateQueries({
+            predicate: (query) => query.queryKey.includes('cart'),
+          })
+          void cache.invalidateQueries({
             queryKey: ['demo', 'order', generation, userId],
           })
         }
       },
       onEvent: (event) => {
         setLastEvent({ generation, type: event.type })
-        if (event.type === 'nft.updated')
+        if (event.type === 'nft.updated') {
           void cache.invalidateQueries({ queryKey: ['nfts'] })
-        else
+          void cache.invalidateQueries({
+            predicate: (query) => query.queryKey.includes('cart'),
+          })
+        } else
           void cache.invalidateQueries({
             queryKey: ['demo', 'order', generation],
           })
@@ -76,6 +82,9 @@ export function useDemoController() {
     mutationFn: resetDemo,
     onSuccess: async (data) => {
       await cache.cancelQueries({ queryKey: ['nfts'] })
+      await cache.cancelQueries({
+        predicate: (query) => query.queryKey.includes('cart'),
+      })
       await cache.cancelQueries({ queryKey: ['demo', 'order'] })
       cache.removeQueries({ queryKey: ['demo', 'order'] })
       cache.setQueryData(
@@ -83,6 +92,9 @@ export function useDemoController() {
         data,
       )
       void cache.resetQueries({ queryKey: ['nfts'] })
+      void cache.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('cart'),
+      })
       void cache.invalidateQueries({ queryKey: ['session'] })
       void cache.invalidateQueries({ queryKey: ['private'] })
     },

@@ -2,6 +2,8 @@ import type { CatalogNft } from './catalog'
 
 export type PurchaseItem = {
   nft: CatalogNft
+  id?: string
+  editionId?: '1/1' | '1/10' | '1/50' | 'open'
   quantity: number
   available: number
 }

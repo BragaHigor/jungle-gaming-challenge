@@ -9,10 +9,12 @@ export function PurchaseItems({
   items,
   onQuantity,
   onRemove,
+  disabled = false,
 }: {
   items: readonly PurchaseItem[]
   onQuantity?: (id: string, quantity: number) => void
   onRemove?: (id: string) => void
+  disabled?: boolean
 }) {
   const { t } = useTranslation('purchase')
   const { t: card } = useTranslation('card')
@@ -33,9 +35,9 @@ export function PurchaseItems({
         <span>{t('subtotal')}</span>
       </div>
       <ul className="space-y-3 max-tablet:space-y-5">
-        {items.map(({ nft, quantity, available }) => (
+        {items.map(({ nft, quantity, available, id, editionId }) => (
           <li
-            key={nft.id}
+            key={id ?? nft.id}
             className={`min-w-0 bg-surface ${editable ? 'relative grid grid-cols-[minmax(0,1fr)_auto] xs:max-tablet:min-h-[100px] xs:max-tablet:pb-0 gap-x-3 overflow-hidden rounded-2xl tablet:grid-cols-[minmax(0,1fr)_80px_136px_96px_44px] tablet:items-center tablet:gap-3 tablet:rounded-none max-tablet:pb-2' : 'grid grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 pr-3'}`}
           >
             {editable ? (
@@ -56,6 +58,11 @@ export function PurchaseItems({
                     </strong>
                     <small className="text-xs text-secondary xs:max-tablet:text-[10px]">
                       {t('token', { token: nft.token })}
+                      {editionId && (
+                        <span className="block">
+                          {t('edition', { edition: editionId })}
+                        </span>
+                      )}
                     </small>
                   </span>
                 </Link>
@@ -66,7 +73,8 @@ export function PurchaseItems({
                   <QuantityStepper
                     value={quantity}
                     max={available}
-                    onChange={(value) => onQuantity?.(nft.id, value)}
+                    disabled={disabled}
+                    onChange={(value) => onQuantity?.(id ?? nft.id, value)}
                   />
                 </div>
                 <strong className="col-start-1 row-start-2 self-center pl-3 text-sm text-primary xs:max-tablet:absolute xs:max-tablet:left-[112px] xs:max-tablet:bottom-4 xs:max-tablet:pl-0 tablet:col-start-auto tablet:row-auto tablet:pl-0">
@@ -74,9 +82,10 @@ export function PurchaseItems({
                 </strong>
                 <button
                   type="button"
+                  disabled={disabled}
                   aria-label={t('remove', { title: nft.title })}
                   className="absolute top-0 right-0 grid size-11 place-items-center text-secondary hover:text-destructive tablet:static"
-                  onClick={() => onRemove?.(nft.id)}
+                  onClick={() => onRemove?.(id ?? nft.id)}
                 >
                   <Icon name="close" />
                 </button>

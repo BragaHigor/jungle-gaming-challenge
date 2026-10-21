@@ -132,15 +132,15 @@ test.describe('Revisão visual e responsividade', () => {
     const panel = page.locator('.mobile-purchase')
     await expect(panel).toHaveCSS('position', 'static')
     await panel
-      .getByRole('link', { name: 'COMPRAR NFT', exact: true })
+      .getByRole('button', { name: 'COMPRAR NFT', exact: true })
       .scrollIntoViewIfNeeded()
     await expect(
-      panel.getByRole('link', { name: 'COMPRAR NFT', exact: true }),
+      panel.getByRole('button', { name: 'COMPRAR NFT', exact: true }),
     ).toBeInViewport()
     await page.setViewportSize({ width: 390, height: 844 })
     await expect(panel).toHaveCSS('position', 'fixed')
     await expect(
-      panel.getByRole('link', { name: 'COMPRAR NFT', exact: true }),
+      panel.getByRole('button', { name: 'COMPRAR NFT', exact: true }),
     ).toBeInViewport()
   })
 

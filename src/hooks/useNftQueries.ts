@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { getCatalog, getNft } from '@/api/catalog'
 import { ApiError } from '@/api/client'
 import { catalogQuerySchema, type CatalogQuery } from '@/schemas/api/catalog'
@@ -16,6 +16,7 @@ export function useCatalogQuery(input: CatalogQuery = {}) {
   const query = catalogQuerySchema.parse(input)
   return useQuery({
     queryKey: ['nfts', 'list', query],
+    placeholderData: keepPreviousData,
     queryFn: ({ signal }) => getCatalog(query, signal),
     retry: retryRead,
   })

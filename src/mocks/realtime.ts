@@ -69,6 +69,7 @@ async function broadcast(event: ResourceEvent) {
 export async function emitResourceEvent(
   type: 'nft.updated' | 'order.updated',
   request?: Request,
+  change?: { nftId: string; editionId: string; soldOut: boolean },
 ) {
   const initial = await readDatabase()
   if (initial.scenario === 'malformed-event') {
@@ -84,9 +85,18 @@ export async function emitResourceEvent(
       generation: database.generation,
     }
     if (type === 'nft.updated') {
-      const nft = database.nfts[0]
+      const nft = change
+        ? database.nfts.find((value) => value.id === change.nftId)
+        : database.nfts[0]
+      if (!nft) throw new MockError('NOT_FOUND', 404)
       nft.price = weiToEth(ethToWei(nft.price) + ethToWei('0.01'))
-      nft.editions[2].available = Math.max(0, nft.editions[2].available - 1)
+      const edition = change
+        ? nft.editions.find((value) => value.id === change.editionId)
+        : nft.editions[2]
+      if (!edition) throw new MockError('NOT_FOUND', 404)
+      edition.available = change?.soldOut
+        ? 0
+        : Math.max(0, edition.available - 1)
       nft.version += 1
       return resourceEventSchema.parse({
         ...envelope,

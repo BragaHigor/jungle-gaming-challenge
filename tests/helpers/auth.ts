@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test'
+import { seedCart } from './cart'
 import { visit } from './navigation'
 
 export async function signInFixture(
@@ -25,6 +26,7 @@ export async function visitWithAccount(page: Page, path: string) {
     if (!(await page.evaluate(() => sessionStorage.getItem('kurio-session'))))
       await signInFixture(page)
   }
+  if (path.startsWith('/checkout')) await seedCart(page)
   await visit(page, path)
 }
 

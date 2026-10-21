@@ -22,6 +22,8 @@ export const cartSchema = z.strictObject({
   userId: resourceIdSchema.nullable(),
   items: z.array(cartItemSchema),
   version: versionSchema,
+  coupon: z.string().max(40).nullable().default(null),
+  mergeNotice: z.enum(['none', 'merged', 'partial']).default('none'),
 })
 export const totalsSchema = z
   .strictObject({
@@ -69,7 +71,13 @@ const hasConsistentSubtotal = (value: {
 export const quoteSchema = z
   .strictObject({
     id: resourceIdSchema,
-    userId: resourceIdSchema,
+    userId: resourceIdSchema.nullable(),
+    cartId: resourceIdSchema.optional(),
+    walletId: resourceIdSchema.nullable().default(null),
+    network: z.enum(networks).default('Ethereum'),
+    coupon: z.string().nullable().default(null),
+    resourceVersions: z.record(z.string(), versionSchema).default({}),
+    requiresReview: z.boolean().default(false),
     cartVersion: versionSchema,
     items: z.array(orderLineSchema).min(1),
     totals: totalsSchema,
@@ -108,8 +116,32 @@ export const orderSchema = z
 export type Order = z.infer<typeof orderSchema>
 
 export const cartQuantityRequestSchema = z.strictObject({
+  cartVersion: versionSchema,
   quantity: quantitySchema,
 })
 export const couponRequestSchema = z.strictObject({
+  cartVersion: versionSchema,
   code: z.string().trim().min(1).max(40),
 })
+
+export const cartVersionRequestSchema = z.strictObject({
+  cartVersion: versionSchema,
+})
+export const cartPreviewRequestSchema = z.strictObject({
+  cartVersion: versionSchema,
+  resourceVersions: z.record(z.string(), versionSchema),
+  network: z.enum(networks).default('Ethereum'),
+})
+export const cartResponseSchema = cartSchema.extend({
+  lines: z.array(
+    cartItemSchema.extend({
+      nft: nftSchema,
+      available: z.int().min(0).max(99),
+    }),
+  ),
+  stockValid: z.boolean(),
+})
+export type Cart = z.infer<typeof cartSchema>
+export type CartResponse = z.infer<typeof cartResponseSchema>
+export type Quote = z.infer<typeof quoteSchema>
+export type CartItemRequest = z.infer<typeof cartItemRequestSchema>

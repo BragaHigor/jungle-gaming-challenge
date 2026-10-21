@@ -33,10 +33,12 @@ export async function replaceSession(session: Session | null) {
   await Promise.all([
     queryClient.cancelQueries({ queryKey: sessionKey }),
     queryClient.cancelQueries({ queryKey: ['private'] }),
+    queryClient.cancelQueries({ queryKey: ['cart'] }),
     queryClient.cancelQueries({ queryKey: ['demo', 'order'] }),
   ])
   if (current !== transition) return false
   queryClient.removeQueries({ queryKey: ['private'] })
+  queryClient.removeQueries({ queryKey: ['cart'] })
   queryClient.removeQueries({ queryKey: ['demo', 'order'] })
   if (session) sessionStorage.setItem(storageKey, session.token)
   else sessionStorage.removeItem(storageKey)

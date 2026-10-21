@@ -18,6 +18,18 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const [selection, setSelection] = useState<Scenario | null>(null)
   const { pathname } = useLocation()
   const isCatalogRoute = pathname === '/' || pathname.startsWith('/nfts/')
+  const cartScenarios = [
+    'cart-empty',
+    'coupon-invalid',
+    'coupon-expired',
+    'quote-failure',
+    'cart-price-change',
+    'cart-stock-change',
+    'cart-ready',
+    'cart-slow',
+  ] as const
+  const isCartScenario = (scenario: Scenario) =>
+    cartScenarios.some((value) => value === scenario)
   const excludedScenario = pathname === '/' ? 'sold-out' : 'empty'
   const privateScenarios = [
     'session-expired',
@@ -29,12 +41,16 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const catalogScenarios = scenarios.filter(
     (scenario) =>
       scenario !== excludedScenario &&
+      !isCartScenario(scenario) &&
       (!isPrivateScenario(scenario) || session),
   )
   const accountScenarios = session
     ? (['default', ...privateScenarios] as const)
     : (['default'] as const)
-  const visibleScenarios = isCatalogRoute ? catalogScenarios : accountScenarios
+  let visibleScenarios: readonly Scenario[] = accountScenarios
+  if (isCatalogRoute) visibleScenarios = catalogScenarios
+  if (pathname === '/cart' || pathname === '/checkout')
+    visibleScenarios = [...accountScenarios, ...cartScenarios]
   const candidate = selection ?? status.data?.scenario ?? 'default'
   const selected = visibleScenarios.some((scenario) => scenario === candidate)
     ? candidate
@@ -106,7 +122,9 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
       <div className="flex flex-wrap gap-3">
         <Button
           variant="outline"
-          disabled={pending || !connected || !isCatalogRoute}
+          disabled={
+            pending || !connected || (!isCatalogRoute && pathname !== '/cart')
+          }
           onClick={() => emit.mutate('nft.updated')}
         >
           {t('changeNft')}

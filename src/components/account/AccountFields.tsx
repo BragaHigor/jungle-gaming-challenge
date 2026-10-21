@@ -53,6 +53,7 @@ export function AccountFields({
   onChange,
   compact = false,
   passwordHint = false,
+  placeholders,
   className,
 }: {
   fields: readonly AccountFieldName[]
@@ -61,6 +62,7 @@ export function AccountFields({
   onChange: (name: AccountFieldName, value: string) => void
   compact?: boolean
   passwordHint?: boolean
+  placeholders?: Partial<Record<AccountFieldName, string>>
   className?: string
 }) {
   const { t } = useTranslation('account')
@@ -106,7 +108,7 @@ export function AccountFields({
           name === 'address' && values.network === 'Solana'
             ? 'solanaAddress'
             : name
-        const placeholder = example(exampleKey)
+        const placeholder = placeholders?.[name] ?? example(exampleKey)
         const controlClass = compact
           ? 'min-h-11 max-tablet:min-h-[50px] max-tablet:rounded-xl'
           : undefined

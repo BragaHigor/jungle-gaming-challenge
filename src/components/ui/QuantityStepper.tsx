@@ -4,10 +4,12 @@ export function QuantityStepper({
   value,
   max,
   onChange,
+  disabled = false,
 }: {
   value: number
   max: number
   onChange: (value: number) => void
+  disabled?: boolean
 }) {
   const { t } = useTranslation('detail')
   return (
@@ -20,8 +22,8 @@ export function QuantityStepper({
         className="w-11 h-11 text-primary-hover text-[20px] disabled:opacity-35"
         type="button"
         aria-label={t('decrease')}
-        disabled={value <= 1}
-        onClick={() => onChange(value - 1)}
+        disabled={disabled || value <= 1 || max < 1}
+        onClick={() => onChange(Math.min(value - 1, max))}
       >
         −
       </button>
@@ -36,7 +38,7 @@ export function QuantityStepper({
         className="w-11 h-11 text-primary-hover text-[20px] disabled:opacity-35"
         type="button"
         aria-label={t('increase')}
-        disabled={value >= max}
+        disabled={disabled || value >= max}
         onClick={() => onChange(value + 1)}
       >
         +

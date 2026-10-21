@@ -17,17 +17,23 @@ export function useCatalog() {
   const search = catalogSearchSchema.parse(useSearch({ strict: false }))
   const navigate = useNavigate()
   const result = useCatalogQuery(search)
+  const [facets, setFacets] = useState(result.data?.facets)
+  const receivedFacets = result.data?.facets
+  if (receivedFacets && receivedFacets !== facets) {
+    setFacets(receivedFacets)
+  }
   const page = search.page ?? 1
   const pageCount = Math.max(1, Math.ceil((result.data?.total ?? 0) / 9))
   useEffect(() => {
-    if (!result.isSuccess || page <= pageCount) return
+    if (!result.isSuccess || result.isPlaceholderData || page <= pageCount)
+      return
     void navigate({
       to: '/',
       search: (previous: CatalogSearch) => ({ ...previous, page: pageCount }),
       replace: true,
       resetScroll: false,
     })
-  }, [navigate, page, pageCount, result.isSuccess])
+  }, [navigate, page, pageCount, result.isSuccess, result.isPlaceholderData])
   const appliedPrice: [number, number] = [
     Math.round(Number(search.min ?? '0.02') * 100),
     Math.round(Number(search.max ?? '12.3') * 100),
@@ -91,7 +97,7 @@ export function useCatalog() {
     pageCount,
     total: result.data?.total ?? 0,
     visible: result.data?.items ?? [],
-    facets: result.data?.facets,
+    facets: receivedFacets ?? facets,
     reset,
     explore: (tab: CatalogTab, category?: Category) => {
       setDraft(null)

@@ -4,6 +4,7 @@ import {
   updateDatabase,
   type Database,
 } from './database'
+import { mergeVisitorCart } from './cart'
 import { MockError } from './responses'
 import type { RegistrationDraft } from '@/schemas/account'
 
@@ -39,6 +40,7 @@ function createSession(database: Database, userId: string) {
     (session) => Date.parse(session.expiresAt) > Date.now(),
   )
   database.sessions.push(record)
+  mergeVisitorCart(database, userId)
   return getSession(database, record.token)!
 }
 
@@ -106,6 +108,8 @@ export async function register(draft: RegistrationDraft) {
       userId: user.id,
       items: [],
       version: 1,
+      coupon: null,
+      mergeNotice: 'none',
     })
     return createSession(database, user.id)
   })
