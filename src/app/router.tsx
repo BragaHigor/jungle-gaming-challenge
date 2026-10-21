@@ -4,6 +4,7 @@ import {
   createRouter,
 } from '@tanstack/react-router'
 import { App } from './App'
+import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
 import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
 import { ConfirmationPage } from '@/pages/ConfirmationPage'
@@ -16,6 +17,7 @@ import {
   WalletsRoute,
 } from './AccountRoutes'
 import { accountSearchSchema } from '@/schemas/account'
+import { parseSearch, stringifySearch } from '@/utils/search'
 
 const rootRoute = createRootRoute({
   component: App,
@@ -24,18 +26,19 @@ const rootRoute = createRootRoute({
 const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  validateSearch: (search) => presentationSearchSchema.parse(search),
+  validateSearch: (search) => catalogSearchSchema.parse(search),
   component: HomeRoute,
 })
 
 const nftRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/nfts/$nftId',
-  validateSearch: (search) => presentationSearchSchema.parse(search),
   component: NftRoute,
 })
 
 export const router = createRouter({
+  parseSearch,
+  stringifySearch,
   scrollRestoration: true,
   getScrollRestorationKey: (location) => location.href,
   routeTree: rootRoute.addChildren([

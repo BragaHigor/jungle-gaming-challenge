@@ -5,6 +5,7 @@ import { resourceIdSchema } from './api/common'
 export const scenarios = [
   'default',
   'empty',
+  'sold-out',
   'slow',
   'variable-latency',
   'offline',

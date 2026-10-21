@@ -1,45 +1,41 @@
 import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { HomePage } from '@/pages/HomePage'
 import { NftPage } from '@/pages/NftPage'
-import { homeCards } from '@/mocks/presentation'
+import { useCatalogQuery, useNftQuery } from '@/hooks/useNftQueries'
+import { QueryFeedback } from '@/components/shared/QueryFeedback'
+import { ApiError } from '@/api/client'
 
-const homeApi = getRouteApi('/')
 const nftApi = getRouteApi('/nfts/$nftId')
 
 export function HomeRoute() {
-  const search = homeApi.useSearch()
-  const navigate = useNavigate()
-  return (
-    <HomePage
-      key={search.q ?? ''}
-      cards={homeCards}
-      initialQuery={search.q}
-      state={search.view}
-      onRetry={() => void navigate({ to: '/', search: {} })}
-    />
-  )
+  return <HomePage />
 }
 
 export function NftRoute() {
   const { nftId } = nftApi.useParams()
-  const { view } = nftApi.useSearch()
   const navigate = useNavigate()
-  const nft = homeCards.find((card) => card.id === nftId)
+  const detail = useNftQuery(nftId)
+  const related = useCatalogQuery({ pageSize: 6 })
+  const notFound =
+    detail.error instanceof ApiError && detail.error.status === 404
+  const loading = detail.isPending ? 'loading' : 'ready'
+  const failed = detail.isError && !detail.data ? 'error' : loading
+  const state = notFound ? 'unavailable' : failed
   return (
-    <NftPage
-      key={nftId}
-      nft={nft}
-      related={[...homeCards.slice(3, 7), homeCards[8]].filter(
-        (card) => card.id !== nftId,
-      )}
-      state={view}
-      onRetry={() => {
-        if (!nft) {
-          void navigate({ to: '/' })
-          return
-        }
-        void navigate({ to: '/nfts/$nftId', params: { nftId }, search: {} })
-      }}
-    />
+    <>
+      <QueryFeedback query={detail} />
+      <NftPage
+        key={nftId}
+        nft={detail.data}
+        related={(related.data?.items ?? []).filter(
+          (card) => card.id !== nftId,
+        )}
+        state={state}
+        onRetry={() => {
+          if (notFound) void navigate({ to: '/' })
+          else void detail.refetch()
+        }}
+      />
+    </>
   )
 }

@@ -19,26 +19,21 @@ import {
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/Icon'
 import { useCatalog } from '@/hooks/useCatalog'
-import type { CatalogNft, ViewState } from '@/types/catalog'
+import { QueryFeedback } from '@/components/shared/QueryFeedback'
 
-export function HomePage({
-  cards,
-  initialQuery = '',
-  state = 'ready',
-  onRetry,
-}: {
-  cards: readonly CatalogNft[]
-  initialQuery?: string
-  state?: ViewState
-  onRetry: () => void
-}) {
+export function HomePage() {
   const { t } = useTranslation(['common', 'catalog', 'card', 'navigation'])
-  const controls = useCatalog(cards, initialQuery)
+  const controls = useCatalog()
   const [filtersOpen, setFiltersOpen] = useState(false)
-  const activeState = state === 'ready' && !controls.total ? 'empty' : state
+  const { result } = controls
+  const state = result.isPending ? 'loading' : 'ready'
+  const failed = result.isError && !result.data
+  const activeState = failed ? 'error' : state
+  const displayState =
+    activeState === 'ready' && !controls.total ? 'empty' : activeState
   const reset = () => {
-    controls.reset()
-    onRetry()
+    if (displayState === 'empty') controls.reset()
+    else void result.refetch()
   }
   return (
     <>
@@ -70,7 +65,7 @@ export function HomePage({
             title={t('catalog:filters')}
             description={t('catalog:filtersDescription')}
           >
-            <CatalogFilters cards={cards} controls={controls} />
+            <CatalogFilters controls={controls} />
             <CatalogSort controls={controls} stacked />
             <DialogClose asChild>
               <Button>
@@ -94,7 +89,7 @@ export function HomePage({
             className="catalog-sidebar max-tablet:hidden"
             aria-label={t('catalog:filters')}
           >
-            <CatalogFilters cards={cards} controls={controls} />
+            <CatalogFilters controls={controls} />
             <section className="catalog-featured mt-6 [&_h3_span]:block [&_h3_span]:text-secondary [&_h3_span]:text-[12px] [&_h3_span]:font-normal [&_h3_span]:mt-1">
               <h3 className="text-[16px] font-bold mb-5">
                 {t('catalog:featured')}
@@ -139,8 +134,9 @@ export function HomePage({
             <p className="sr-only" role="status">
               {t('catalog:results', { count: controls.total })}
             </p>
-            {activeState !== 'ready' ? (
-              <CatalogState state={activeState} onReset={reset} />
+            <QueryFeedback query={result} />
+            {displayState !== 'ready' ? (
+              <CatalogState state={displayState} onReset={reset} />
             ) : (
               <>
                 <NftGrid className="catalog-grid">

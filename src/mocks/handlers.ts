@@ -118,6 +118,8 @@ export const handlers = [
     respond(async () => {
       const fault = await scenarioResponse(request)
       if (fault) return fault
+      if (readDatabase().scenario === 'malformed-response')
+        return json({ id: params.id, price: 1 })
       const id = parseInput(resourceIdSchema, params.id)
       const nft = readDatabase().nfts.find((value) => value.id === id)
       if (!nft) return failure('NOT_FOUND', 404)

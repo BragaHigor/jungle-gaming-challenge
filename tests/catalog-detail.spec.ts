@@ -1,6 +1,6 @@
+import { setScenario } from './helpers/scenarios'
 import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
-
 async function openFilters(page: Page) {
   if (
     await page.getByRole('button', { name: 'Filtros', exact: true }).isVisible()
@@ -10,12 +10,10 @@ async function openFilters(page: Page) {
   }
   return page.getByRole('complementary', { name: 'Filtros', exact: true })
 }
-
 async function closeFilters(page: Page) {
   if (await page.getByRole('dialog', { name: 'Filtros', exact: true }).count())
     await page.getByRole('button', { name: /^Ver resultados/ }).click()
 }
-
 test.describe('Visual do catálogo e dos detalhes', () => {
   test('busca por nome, mostra vazio e permite limpar os filtros', async ({
     page,
@@ -44,7 +42,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       .click()
     await expect(page.locator('.catalog-grid article')).toHaveCount(9)
   })
-
   test('combina rede e categoria, mantém filtros ao fechar e reinicia a paginação', async ({
     page,
   }) => {
@@ -72,7 +69,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
     await closeFilters(page)
     await expect(page.locator('.catalog-grid article')).toHaveCount(9)
   })
-
   test('ordena por preço e aplica faixa sem cruzar os limites', async ({
     page,
     isMobile,
@@ -101,7 +97,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       .allTextContents())
       expect(price.trim()).toBe('0.39 ETH')
   })
-
   test('muda a arte do destaque e navega entre páginas do catálogo', async ({
     page,
   }) => {
@@ -127,7 +122,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       ).toHaveAttribute('src', '/images/nft-artwork-03.webp')
     }
   })
-
   test('amplia a galeria, seleciona recorte e retorna o foco', async ({
     page,
   }) => {
@@ -153,7 +147,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
     await page.keyboard.press('Escape')
     await expect(trigger).toBeFocused()
   })
-
   test('limita a quantidade pela edição e permite navegar pelas abas com teclado', async ({
     page,
     isMobile,
@@ -199,22 +192,29 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       }),
     ).toContainText('19 avaliações')
   })
-
   test('renderiza estados visuais e recupera de erro sem simular uma compra', async ({
     page,
   }) => {
-    await visit(page, '/?view=empty')
+    await visit(page, '/')
+    await setScenario(page, 'empty')
+    await visit(page, '/')
     await expect(
       page.getByRole('heading', { name: 'Nenhum NFT encontrado' }),
     ).toBeVisible()
-    await visit(page, '/?view=loading')
+    await setScenario(page, 'slow')
+    await visit(page, '/')
     await expect(
       page
         .getByRole('status', { name: '', exact: true })
         .filter({ hasText: 'Carregando NFTs' }),
     ).toHaveCount(1)
     await expect(page.locator('.catalog-main [aria-busy="true"]')).toBeVisible()
-    await visit(page, '/?view=error')
+    await setScenario(page, 'server-error')
+    await visit(page, '/')
+    await expect(
+      page.getByRole('heading', { name: 'Não foi possível carregar os NFTs' }),
+    ).toBeVisible()
+    await setScenario(page, 'default')
     await page
       .getByRole('button', { name: 'Tentar novamente', exact: true })
       .click()
@@ -228,7 +228,6 @@ test.describe('Visual do catálogo e dos detalhes', () => {
       .click()
     await expect(page).toHaveURL('/')
   })
-
   for (const width of [390, 414, 768, 1440]) {
     test(`mantém o detalhe traduzido e sem overflow em ${width}px`, async ({
       page,

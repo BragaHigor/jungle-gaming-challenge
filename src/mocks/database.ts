@@ -84,6 +84,7 @@ export function createDatabase(scenario: Scenario = 'default'): Database {
       { id: 'open' as const, available: 99, limit: 99 },
     ],
   }))
+  if (scenario === 'sold-out') nfts[0].editions[2].available = 0
   const pending = scenario === 'pending-order'
   const date = '2026-10-21T00:00:00.000Z'
   if (pending) nfts[0].editions[2].available = 49

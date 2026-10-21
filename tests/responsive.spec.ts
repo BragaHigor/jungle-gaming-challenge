@@ -1,3 +1,4 @@
+import { setScenario } from './helpers/scenarios'
 import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
@@ -13,7 +14,8 @@ test.describe('Revisão visual e responsividade', () => {
       media.nth(1).boundingBox(),
       media.nth(2).boundingBox(),
     ])
-    await visit(page, '/?view=loading')
+    await setScenario(page, 'slow')
+    await visit(page, '/')
     const loading = page.locator('.catalog-main .nft-card__media')
     for (const index of [0, 1, 2]) {
       const box = await loading.nth(index).boundingBox()
@@ -31,7 +33,9 @@ test.describe('Revisão visual e responsividade', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await visit(page, '/nfts/emerald-ape-042?view=loading')
+    await visit(page, '/')
+    await setScenario(page, 'slow')
+    await visit(page, '/nfts/emerald-ape-042')
     await expect(page.getByRole('status')).toHaveText('Carregando NFT…')
     await expect(page.locator('.nft-detail-loading')).toHaveAttribute(
       'aria-busy',

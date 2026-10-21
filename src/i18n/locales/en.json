@@ -158,7 +158,11 @@
     "creatorsText": "Understand rarity, provenance, royalties and utility.",
     "securityTitle": "How to protect your wallet",
     "securityText": "Protect your wallet, assets and identity.",
-    "readMore": "Read more"
+    "readMore": "Read more",
+    "refreshing": "Updating NFTs…",
+    "refreshError": "Unable to refresh. The last received data remains visible.",
+    "requestError": "Unable to load NFTs. Please try again.",
+    "contractError": "The received response is invalid. Reset the demonstration to try again."
   },
   "detail": {
     "quantity": "Quantity",
@@ -208,7 +212,10 @@
     "sageAlt": "Hat, Lilac, Common",
     "neonAlt": "Glasses, Ivory, Rare",
     "goldenAlt": "Headphones, Golden, Common",
-    "loading": "Loading NFT…"
+    "loading": "Loading NFT…",
+    "soldOut": "Edition sold out",
+    "availability_one": "{{count}} unit available in this edition",
+    "availability_other": "{{count}} units available in this edition"
   },
   "purchase": {
     "cartTitle": "NFT cart",
@@ -407,6 +414,20 @@
     "scenario_malformed-response": "Invalid response",
     "scenario_malformed-event": "Invalid update",
     "scenario_pending-order": "Pending order (fictional account)",
-    "notice": "All data is fictional. Applying a scenario resets the simulation state; your language preference is preserved."
+    "notice": "All data is fictional. Applying a scenario resets the simulation state; your language preference is preserved.",
+    "scenario_sold-out": "Edition sold out",
+    "effect_default": "Restores the data and default behavior.",
+    "effect_empty": "Shows a catalog with no results.",
+    "effect_sold-out": "Sells out the Emerald Ape 1/50 edition.",
+    "effect_slow": "Delays requests to show loading.",
+    "effect_variable-latency": "Searches respond at different times; the latest search must prevail.",
+    "effect_offline": "Simulates a network failure during requests.",
+    "effect_timeout": "Delays the response beyond the request timeout.",
+    "effect_server-error": "Returns a temporary service error.",
+    "effect_unauthorized": "Returns unauthorized access during requests.",
+    "effect_forbidden": "Returns forbidden access during requests.",
+    "effect_malformed-response": "Returns invalid data to exercise contract validation.",
+    "effect_malformed-event": "Sends an invalid event that must be ignored.",
+    "effect_pending-order": "Prepares a pending order for a fictitious account, without confirming payment."
   }
 }
