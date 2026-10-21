@@ -8,6 +8,12 @@ import type {
 } from '@/types/catalog'
 import { centiEth, ethToWei } from '@/utils/eth'
 
+const comparePrices = (first: string, second: string) => {
+  const difference = ethToWei(first) - ethToWei(second)
+  if (difference === 0n) return 0
+  return difference < 0n ? -1 : 1
+}
+
 export function useCatalog(cards: readonly CatalogNft[], initialQuery = '') {
   const [query, setQuery] = useState(initialQuery)
   const [selectedCategories, setCategories] = useState<Category[]>([])
@@ -48,12 +54,10 @@ export function useCatalog(cards: readonly CatalogNft[], initialQuery = '') {
         ethToWei(card.price) <= ethToWei(centiEth(appliedPrice[1])),
     )
     .sort((a, b) => {
+      if (sort === 'recent') return 0
       if (sort === 'name') return a.title.localeCompare(b.title)
-      const difference = ethToWei(a.price) - ethToWei(b.price)
-      return sort === 'recent'
-        ? 0
-        : (difference < 0n ? -1 : difference > 0n ? 1 : 0) *
-            (sort === 'highest' ? -1 : 1)
+      const direction = sort === 'highest' ? -1 : 1
+      return comparePrices(a.price, b.price) * direction
     })
   const pageCount = Math.max(1, Math.ceil(filtered.length / 9))
   const currentPage = Math.min(page, pageCount)

@@ -1,6 +1,24 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Componentes compartilhados e identidade visual', () => {
+  test('abre as opções do seletor e preserva escolha e foco pelo teclado', async ({
+    page,
+  }) => {
+    await page.goto('/checkout')
+    const select = page.getByRole('combobox', { name: 'Rede', exact: true })
+    await select.click()
+    await page.getByRole('option', { name: 'Solana', exact: true }).click()
+    await expect(select).toHaveValue('Solana')
+    await select.focus()
+    await page.keyboard.press('Space')
+    await expect(
+      page.getByRole('option', { name: 'Polygon', exact: true }),
+    ).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(select).toBeFocused()
+    await expect(select).toHaveValue('Solana')
+  })
+
   test('mantém o foco no menu e devolve ao acionador ao pressionar Escape', async ({
     page,
   }) => {

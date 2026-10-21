@@ -5,6 +5,8 @@ import {
 } from '@tanstack/react-router'
 import { App } from './App'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
+import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
+import { ConfirmationPage } from '@/pages/ConfirmationPage'
 import { presentationSearchSchema } from '@/schemas/presentation'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PageHeading } from '@/pages/PageHeading'
@@ -34,17 +36,18 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/cart',
-      component: () => <PageHeading title="cartTitle" />,
+      validateSearch: (search) => presentationSearchSchema.parse(search),
+      component: CartRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/checkout',
-      component: () => <PageHeading title="checkoutTitle" />,
+      component: CheckoutRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/confirmation',
-      component: () => <PageHeading title="confirmationTitle" />,
+      component: ConfirmationPage,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
