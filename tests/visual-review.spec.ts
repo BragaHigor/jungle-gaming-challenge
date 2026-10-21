@@ -1,3 +1,4 @@
+import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { expect, test } from '@playwright/test'
 
@@ -26,7 +27,7 @@ test.describe('Revisão do conjunto visual', () => {
       for (const width of [320, 390, 768]) {
         await page.setViewportSize({ width, height: 844 })
         for (const route of routes) {
-          await visit(page, route)
+          await visitWithAccount(page, route)
           await page.evaluate(() => document.fonts.ready)
           await page.evaluate(() => {
             document.documentElement.style.fontSize = '200%'
@@ -46,7 +47,7 @@ test.describe('Revisão do conjunto visual', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await visit(page, '/checkout')
+    await visitWithAccount(page, '/checkout')
     const reserve = page.getByRole('radio', { name: /Reserva/ })
     const main = page.getByRole('radio', { name: /Principal/ })
     await reserve.focus()
@@ -68,7 +69,7 @@ test.describe('Revisão do conjunto visual', () => {
   test('identifica os campos obrigatórios do pagamento e a nova senha no cadastro', async ({
     page,
   }) => {
-    await visit(page, '/checkout')
+    await visitWithAccount(page, '/checkout')
     const name = page.getByRole('textbox', {
       name: 'Nome de exibição',
       exact: true,

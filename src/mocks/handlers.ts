@@ -5,6 +5,7 @@ import { resourceIdSchema } from '@/schemas/api/common'
 import {
   loginRequestSchema,
   registrationRequestSchema,
+  favoriteRequestSchema,
 } from '@/schemas/api/account'
 import {
   cartItemRequestSchema,
@@ -14,22 +15,21 @@ import {
 } from '@/schemas/api/purchase'
 import {
   getDemoStatus,
-  getSession,
   readDatabase,
   resetDatabase,
+  updateDatabase,
 } from './database'
 import { closeConnections, emitResourceEvent } from './realtime'
 import { listNfts } from './catalog'
 import { failure, jsonBody, MockError, parseInput, respond } from './responses'
 import { scenarioResponse } from './scenarios'
+import { login, register, requireUser } from './auth'
+import { delay } from 'msw'
 
 const json = (data: Parameters<typeof HttpResponse.json>[0]) =>
   HttpResponse.json(data, { headers: { 'Cache-Control': 'no-store' } })
 async function requireSession(request: Request) {
-  const token = request.headers.get('Authorization')?.replace(/^Bearer /, '')
-  const session = getSession(await readDatabase(), token)
-  if (!session) throw new MockError('UNAUTHORIZED', 401)
-  return session
+  return requireUser(await readDatabase(), request)
 }
 const privateReads = [
   http.get('/api/session', ({ request }) =>
@@ -61,11 +61,12 @@ const privateReads = [
   ),
   http.get('/api/favorites', ({ request }) =>
     respond(async () => {
-      const session = await requireSession(request)
+      const database = await readDatabase()
+      const session = requireUser(database, request)
       return json({
         userId: session.user.id,
-        nftIds: (await readDatabase()).favorites[session.user.id] ?? [],
-        version: 1,
+        nftIds: database.favorites[session.user.id] ?? [],
+        version: database.favoriteVersions[session.user.id] ?? 1,
       })
     }),
   ),
@@ -83,13 +84,47 @@ const privateReads = [
   ),
 ]
 export const handlers = [
-  http.get('/api/demo', () => respond(async () => json(await getDemoStatus()))),
+  http.get('/api/demo', ({ request }) =>
+    respond(async () =>
+      json(
+        await getDemoStatus(
+          request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+        ),
+      ),
+    ),
+  ),
   http.post('/api/demo/reset', ({ request }) =>
     respond(async () => {
       const { scenario } = parseInput(
         demoRequestSchema,
         await jsonBody(request),
       )
+      if (
+        ['session-expired', 'favorites-failure', 'favorites-ready'].includes(
+          scenario,
+        )
+      ) {
+        await updateDatabase((database) => {
+          const session = requireUser(database, request)
+          if (scenario === 'session-expired') {
+            const record = database.sessions.find(
+              (value) => value.token === session.token,
+            )!
+            record.expiresAt = new Date(Date.now() - 1000).toISOString()
+          } else {
+            database.favoriteFailures = database.favoriteFailures.filter(
+              (id) => id !== session.user.id,
+            )
+            if (scenario === 'favorites-failure')
+              database.favoriteFailures.push(session.user.id)
+          }
+        })
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
       const status = await resetDatabase(scenario)
       closeConnections()
       return json(status)
@@ -101,7 +136,7 @@ export const handlers = [
         demoEventRequestSchema,
         await jsonBody(request),
       )
-      await emitResourceEvent(type)
+      await emitResourceEvent(type, request)
       return json({ emitted: true })
     }),
   ),
@@ -141,14 +176,64 @@ export const handlers = [
   ...privateReads,
   http.post('/api/auth/login', ({ request }) =>
     respond(async () => {
-      parseInput(loginRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
+      const input = parseInput(loginRequestSchema, await jsonBody(request))
+      await delay(150)
+      return json(await login(input.email, input.password))
     }),
   ),
   http.post('/api/auth/register', ({ request }) =>
     respond(async () => {
-      parseInput(registrationRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
+      const input = parseInput(
+        registrationRequestSchema,
+        await jsonBody(request),
+      )
+      await delay(150)
+      return json(await register(input))
+    }),
+  ),
+  http.post('/api/auth/logout', ({ request }) =>
+    respond(async () => {
+      await updateDatabase((database) => {
+        const session = requireUser(database, request)
+        database.sessions = database.sessions.filter(
+          (value) => value.token !== session.token,
+        )
+      })
+      return json({ revoked: true })
+    }),
+  ),
+  http.all('/api/favorites', ({ request }) =>
+    respond(async () => {
+      if (!['POST', 'DELETE'].includes(request.method))
+        return failure('NOT_FOUND', 404)
+      const { nftId } = parseInput(
+        favoriteRequestSchema,
+        await jsonBody(request),
+      )
+      const generation = (await readDatabase()).generation
+      await delay(450)
+      const result = await updateDatabase((database) => {
+        if (database.generation !== generation)
+          throw new MockError('SCENARIO_RESET', 409)
+        const session = requireUser(database, request)
+        const userId = session.user.id
+        if (database.favoriteFailures.includes(userId))
+          throw new MockError('UNAVAILABLE', 503)
+        if (!database.nfts.some((nft) => nft.id === nftId))
+          throw new MockError('NOT_FOUND', 404)
+        const current = database.favorites[userId] ?? []
+        const ids = new Set(current)
+        if (request.method === 'POST') ids.add(nftId)
+        else ids.delete(nftId)
+        const nftIds = Array.from(ids)
+        const changed = current.length !== nftIds.length
+        const version =
+          (database.favoriteVersions[userId] ?? 1) + Number(changed)
+        database.favorites[userId] = nftIds
+        database.favoriteVersions[userId] = version
+        return { userId, nftIds, version }
+      })
+      return json(result)
     }),
   ),
   http.post('/api/cart/items', ({ request }) =>

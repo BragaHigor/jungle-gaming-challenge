@@ -1,3 +1,4 @@
+import type { PublicUser } from '@/schemas/api/account'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AccountLayout } from '@/components/account/AccountLayout'
@@ -24,16 +25,18 @@ const passwordFields = [
 export function ProfilePage({
   state = 'ready',
   onRetry,
+  user,
 }: {
   state?: AccountViewState
   onRetry: () => void
+  user?: PublicUser
 }) {
   const { t } = useTranslation('account')
   const { t: common } = useTranslation()
   const [draft, setDraft] = useState<ProfileDraft>({
-    displayName: '',
-    username: '',
-    email: '',
+    displayName: user?.displayName ?? '',
+    username: user?.username ?? '',
+    email: user?.email ?? '',
     ens: '',
     walletNickname: '',
     currentPassword: '',

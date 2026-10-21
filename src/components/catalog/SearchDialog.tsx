@@ -51,6 +51,7 @@ export function SearchDialog() {
           <input
             type="search"
             id="catalog-dialog-search"
+            placeholder={t('catalog:searchPlaceholder')}
             className="field-control w-full min-h-11 pt-2 pr-3 pb-2 pl-3 border border-input rounded-sm bg-transparent text-foreground text-[0.875rem] placeholder:text-muted-foreground placeholder:opacity-100 [&[aria-invalid='true']]:border-destructive"
             maxLength={120}
             value={query}

@@ -16,6 +16,9 @@ export const scenarios = [
   'malformed-response',
   'malformed-event',
   'pending-order',
+  'session-expired',
+  'favorites-failure',
+  'favorites-ready',
 ] as const
 export const scenarioSchema = z.enum(scenarios)
 export const demoRequestSchema = z.strictObject({ scenario: scenarioSchema })

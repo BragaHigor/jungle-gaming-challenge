@@ -2,19 +2,15 @@ import type { NftCardData } from '@/types/catalog'
 import { cn } from '@/utils/cn'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { Icon } from '@/components/ui/Icon'
+import { FavoriteButton } from '@/components/account/FavoriteButton'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function NftCard({
   nft,
-  favorite = false,
-  onFavoriteToggle,
   compact = false,
 }: {
   nft: NftCardData
   compact?: boolean
-  favorite?: boolean
-  onFavoriteToggle?: () => void
 }) {
   const { t } = useTranslation('card')
   return (
@@ -46,21 +42,11 @@ export function NftCard({
             {t('rare')}
           </span>
         )}
-        <button
-          type="button"
+        <FavoriteButton
+          nftId={nft.id}
+          title={nft.title}
           className="nft-card__favorite icon-button absolute top-6 right-6 inline-grid size-11 place-items-center rounded-full border border-primary bg-surface text-primary-hover opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100 group-hover:disabled:opacity-55 max-tablet:top-3 max-tablet:right-3 max-tablet:opacity-55"
-          disabled={!onFavoriteToggle}
-          aria-pressed={favorite}
-          aria-label={t(favorite ? 'unfavorite' : 'favorite', {
-            title: nft.title,
-          })}
-          onClick={onFavoriteToggle}
-        >
-          <Icon
-            name="heart"
-            className={favorite ? 'fill-current' : undefined}
-          />
-        </button>
+        />
       </div>
       <h3
         className={cn(

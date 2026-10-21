@@ -14,17 +14,12 @@ const fieldOptions: Partial<Record<keyof CollectorDraft, readonly string[]>> = {
 const inputAttributes: Partial<
   Record<
     keyof CollectorDraft,
-    Pick<
-      ComponentProps<'input'>,
-      'type' | 'maxLength' | 'autoComplete' | 'placeholder'
-    >
+    Pick<ComponentProps<'input'>, 'type' | 'maxLength' | 'autoComplete'>
   >
 > = {
   email: { type: 'email', autoComplete: 'email' },
   displayName: { autoComplete: 'nickname' },
   referral: { maxLength: 40 },
-  address: { placeholder: '0x…' },
-  ens: { placeholder: 'name.eth' },
 }
 
 export function CollectorFields({
@@ -41,6 +36,7 @@ export function CollectorFields({
   onOtherWalletChange: (checked: boolean) => void
 }) {
   const { t } = useTranslation('purchase')
+  const { t: example } = useTranslation('examples')
   const prefix = useId()
   return (
     <div>
@@ -51,6 +47,10 @@ export function CollectorFields({
             const id = `${prefix}-${key}`
             const error = errors[key] ? t(errors[key] as 'required') : undefined
             const options = fieldOptions[key]
+            const exampleKey =
+              key === 'address' && value.network === 'Solana'
+                ? 'solanaAddress'
+                : key
             const common = {
               id,
               value: value[key],
@@ -76,6 +76,7 @@ export function CollectorFields({
                 autoComplete="off"
                 {...inputAttributes[key]}
                 {...common}
+                placeholder={example(exampleKey)}
               />
             )
             return (
@@ -112,6 +113,7 @@ export function CollectorFields({
             onChange={(event) => onChange('note', event.target.value)}
             maxLength={500}
             rows={6}
+            placeholder={example('note')}
             className={fieldControlStyles}
             aria-invalid={Boolean(errors.note)}
             aria-describedby={errors.note ? `${prefix}-note-error` : undefined}

@@ -1,4 +1,5 @@
 import { DemoControls } from '@/components/demo/DemoControls'
+import { useSession } from '@/hooks/useSession'
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -15,6 +16,7 @@ export function NavigationMenu({
   icon?: 'menu' | 'user'
 }) {
   const { t } = useTranslation('navigation')
+  const { session, endSession } = useSession()
   const [menuOpen, setMenuOpen] = useState(false)
   return (
     <Dialog open={menuOpen} onOpenChange={setMenuOpen}>
@@ -54,11 +56,11 @@ export function NavigationMenu({
             {t('learn')}
           </UnavailableAction>
           <Link
-            to="/login"
+            to={session ? '/profile' : '/login'}
             className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold"
             onClick={() => setMenuOpen(false)}
           >
-            {t('signIn')}
+            {session ? session.user.username : t('signIn')}
           </Link>
           <Link
             to="/profile"
@@ -74,6 +76,18 @@ export function NavigationMenu({
           >
             {t('wallets')}
           </Link>
+          {session && (
+            <button
+              type="button"
+              className="nav-link text-left text-primary"
+              onClick={() => {
+                setMenuOpen(false)
+                void endSession()
+              }}
+            >
+              {t('signOut')}
+            </button>
+          )}
         </nav>
         <div className="mt-auto pt-6">
           <LanguageSelect id="menu-language" />

@@ -1,17 +1,18 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { HomePage } from '@/pages/HomePage'
 import { AccountFields } from '@/components/account/AccountFields'
 import { UnavailableAction } from '@/components/shared/UnavailableAction'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { authenticate } from '@/api/account'
+import { ApiError } from '@/api/client'
+import { readToken, replaceSession, safeReturn } from '@/services/session'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/Icon'
 import {
   loginSchema,
   registrationSchema,
-  type AccountViewState,
   type RegistrationDraft,
 } from '@/schemas/account'
 import type { AccountErrors, AccountFieldName } from '@/types/account'
@@ -73,10 +74,12 @@ export function AuthPage({
   mode,
   state = 'ready',
   onClose,
+  returnTo,
 }: {
   mode: 'login' | 'register'
-  state?: AccountViewState
+  state?: 'ready' | 'expired'
   onClose: () => void
+  returnTo?: string
 }) {
   const { t } = useTranslation('account')
   const { t: common } = useTranslation()
@@ -87,13 +90,22 @@ export function AuthPage({
     confirm: '',
   })
   const [errors, setErrors] = useState<AccountErrors>({})
-  const [unavailable, setUnavailable] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [failure, setFailure] = useState<
+    'invalidCredentials' | 'authError' | null
+  >(null)
+  const navigate = useNavigate()
+  const controller = useRef<AbortController | null>(null)
+  useEffect(() => () => controller.current?.abort(), [])
   const panel = useRef<HTMLDivElement>(null)
   const form = useRef<HTMLFormElement>(null)
   const submit = useRef<HTMLButtonElement>(null)
   const copy = authCopy[mode]
   const isRegister = mode === 'register'
-  const busy = state === 'loading'
+  const busy = pending
+  useEffect(() => {
+    if (failure && !busy) submit.current?.focus()
+  }, [failure, busy])
   const loginCurrent = mode === 'login' ? 'page' : undefined
   const registerCurrent = isRegister ? 'page' : undefined
   const normalSubmitLabel = (
@@ -103,13 +115,14 @@ export function AuthPage({
     </>
   )
   const submitLabel = busy ? t('processing') : normalSubmitLabel
-  const stateMessages = { error: 'authError', expired: 'expired' } as const
-  const statusKey = stateMessages[state as keyof typeof stateMessages]
+  const statusKey = state === 'expired' ? 'expired' : undefined
+  const statusMessage = failure ?? statusKey
   const change = (name: AccountFieldName, value: string) => {
     setDraft((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: undefined }))
   }
-  const validate = () => {
+  const validate = async () => {
+    if (controller.current && !controller.current.signal.aborted) return
     const schema = isRegister ? registrationSchema : loginSchema
     const result = schema.safeParse(draft)
     if (!result.success) {
@@ -119,7 +132,36 @@ export function AuthPage({
     }
     setErrors({})
     setDraft((current) => ({ ...current, password: '', confirm: '' }))
-    setUnavailable(true)
+    setFailure(null)
+    setPending(true)
+    const request = new AbortController()
+    controller.current = request
+    const previousToken = readToken()
+    try {
+      const session = await authenticate(mode, draft, request.signal)
+      if (request.signal.aborted || readToken() !== previousToken) return
+      if (!(await replaceSession(session))) return
+      await navigate({ href: safeReturn(returnTo), replace: true })
+    } catch (error) {
+      if (request.signal.aborted) return
+      if (error instanceof ApiError && error.code === 'CONFLICT') {
+        const fields: AccountErrors = {}
+        if (error.fields?.email === 'emailTaken') fields.email = 'emailTaken'
+        if (error.fields?.username === 'usernameTaken')
+          fields.username = 'usernameTaken'
+        setErrors(fields)
+        focusFirstInvalid(form.current)
+      } else {
+        setFailure(
+          error instanceof ApiError && error.status === 401
+            ? 'invalidCredentials'
+            : 'authError',
+        )
+      }
+    } finally {
+      if (!request.signal.aborted) setPending(false)
+      request.abort()
+    }
   }
   return (
     <>
@@ -168,6 +210,7 @@ export function AuthPage({
             >
               <Link
                 to="/login"
+                search={{ redirect: returnTo }}
                 aria-current={loginCurrent}
                 className="aria-[current=page]:text-primary"
               >
@@ -178,6 +221,7 @@ export function AuthPage({
               </span>
               <Link
                 to="/register"
+                search={{ redirect: returnTo }}
                 aria-current={registerCurrent}
                 className="aria-[current=page]:text-primary"
               >
@@ -195,7 +239,7 @@ export function AuthPage({
               noValidate
               onSubmit={(event) => {
                 event.preventDefault()
-                if (!busy) validate()
+                if (!busy) void validate()
               }}
               className="mx-auto w-full max-w-[340px]"
               aria-label={t(copy.title)}
@@ -217,9 +261,9 @@ export function AuthPage({
                     </UnavailableAction>
                   </div>
                 )}
-                {statusKey && (
+                {statusMessage && (
                   <p role="alert" className="mt-3 text-sm text-destructive">
-                    {t(statusKey)}
+                    {t(statusMessage)}
                   </p>
                 )}
                 <Button
@@ -248,20 +292,11 @@ export function AuthPage({
             </div>
             <Link
               to={copy.destination}
+              search={{ redirect: returnTo }}
               className="mt-10 min-h-11 content-center text-center text-sm text-secondary tablet:hidden"
             >
               {t(copy.switch)}
             </Link>
-            <Dialog open={unavailable} onOpenChange={setUnavailable}>
-              <DialogContent
-                title={common('unavailableTitle')}
-                description={common('unavailableDescription')}
-                onCloseAutoFocus={(event) => {
-                  event.preventDefault()
-                  submit.current?.focus()
-                }}
-              />
-            </Dialog>
           </Primitive.Content>
         </Primitive.Portal>
       </Primitive.Root>

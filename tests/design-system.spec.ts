@@ -1,3 +1,4 @@
+import { visitWithAccount, signInFixture } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
@@ -51,7 +52,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
   test('abre as opções do seletor e preserva escolha e foco pelo teclado', async ({
     page,
   }) => {
-    await visit(page, '/checkout')
+    await visitWithAccount(page, '/checkout')
     const select = page.getByRole('combobox', { name: 'Rede', exact: true })
     await select.click()
     await page.getByRole('option', { name: 'Solana', exact: true }).click()
@@ -99,6 +100,8 @@ test.describe('Componentes compartilhados e identidade visual', () => {
   }) => {
     await page.setViewportSize({ width: 768, height: 1024 })
     await visit(page, '/')
+    await signInFixture(page)
+    await page.reload()
     await page.getByRole('button', { name: 'Abrir menu', exact: true }).click()
     const drawer = page.getByRole('dialog', { name: 'Menu', exact: true })
     await drawer.getByRole('link', { name: 'Carteiras', exact: true }).click()
