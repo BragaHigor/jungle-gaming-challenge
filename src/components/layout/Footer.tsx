@@ -88,7 +88,7 @@ export function Footer() {
                 onChange={() => setFeedback(null)}
               />
               <Button
-                className="rounded-l-none rounded-r-sm pl-3 pr-3 text-[1rem]"
+                className="shrink-0 whitespace-nowrap rounded-l-none rounded-r-sm pl-3 pr-3 text-[1rem]"
                 type="submit"
               >
                 {t('send')}

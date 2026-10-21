@@ -11,7 +11,7 @@ export function LanguageSelect({
   const { t, i18n } = useTranslation()
 
   return (
-    <div className="language-select flex flex-wrap items-center gap-3">
+    <div className="language-select flex min-w-0 max-w-full flex-wrap items-center gap-3">
       <label htmlFor={id} className={compact ? 'sr-only' : undefined}>
         {t('language')}
       </label>

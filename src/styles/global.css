@@ -4,6 +4,7 @@
 
 @layer base {
   html {
+    color-scheme: dark;
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: 1.5rem;
   }
@@ -26,6 +27,9 @@
   textarea {
     font: inherit;
     letter-spacing: inherit;
+  }
+  fieldset {
+    min-width: 0;
   }
   button {
     cursor: pointer;

@@ -31,19 +31,22 @@
   --radius-md: 0.375rem;
   --radius-lg: 0.75rem;
   --radius-mobile: 1.25rem;
-  --gradient-hero:
-    radial-gradient(
-      ellipse at 20% 32%,
-      rgb(210 138 76 / 20%) 0 40%,
-      transparent 40.3%
-    ),
-    radial-gradient(
-      ellipse at 55% 50%,
-      rgb(210 138 76 / 10%) 0 50%,
-      transparent 50.3%
-    ),
-    var(--gradient-surface);
-  --gradient-copper: linear-gradient(93deg, #d28a4c -4%, #a86a36 105%);
+  --gradient-hero: linear-gradient(
+    104.74deg,
+    rgb(210 138 76 / 20%) 1.08%,
+    rgb(210 138 76 / 10%) 99.23%
+  );
+  --gradient-hero-orbit-start: linear-gradient(
+    160.25deg,
+    rgb(221 154 95 / 43%) 22.1%,
+    rgb(210 138 76 / 4%) 87.42%
+  );
+  --gradient-hero-orbit-end: linear-gradient(
+    160.25deg,
+    rgb(221 154 95 / 37%) 22.1%,
+    rgb(210 138 76 / 0%) 87.42%
+  );
+  --gradient-copper: linear-gradient(93deg, #d28a4c -4%, #ac6e39 105%);
   --gradient-surface: linear-gradient(143deg, #241612 -12%, #2f1d15 107%);
 }
 

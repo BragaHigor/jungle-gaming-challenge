@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import type { WalletOption } from '@/types/purchase'
 import type { CollectorDraft } from '@/schemas/collector'
 
+const radioClassName =
+  'size-5 shrink-0 appearance-none rounded-full border border-primary bg-transparent checked:bg-primary checked:shadow-[inset_0_0_0_3px_var(--surface)]'
+
 export function WalletSelection({
   provider,
   onProviderChange,
@@ -48,7 +51,7 @@ export function WalletSelection({
                 value={wallet.id}
                 checked={selected === wallet.id}
                 onChange={() => onSelect(wallet.id)}
-                className="size-5 shrink-0 accent-primary"
+                className={radioClassName}
               />
               <span className="min-w-0 text-sm">
                 <strong className="block">{t(wallet.name)}</strong>
@@ -80,13 +83,15 @@ export function WalletSelection({
                 >
                   {['WC', 'M', 'C'][index]}
                 </span>
-                <span className="flex-1 text-sm">{name}</span>
+                <span className="min-w-0 flex-1 text-sm wrap-anywhere">
+                  {name}
+                </span>
                 <input
                   type="radio"
                   name="provider"
                   checked={provider === name}
                   onChange={() => onProviderChange(name)}
-                  className="size-5 shrink-0 accent-primary"
+                  className={radioClassName}
                 />
               </label>
             ),

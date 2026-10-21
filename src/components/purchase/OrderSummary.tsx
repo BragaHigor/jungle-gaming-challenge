@@ -103,8 +103,8 @@ export function OrderSummary({
         {(['subtotal', 'discount', 'fee', 'total'] as const).map((key) => {
           const valueClassName =
             key === 'total'
-              ? 'inline-block min-h-7 text-lg font-bold text-primary'
-              : 'inline-block min-h-7'
+              ? 'inline-block min-h-7 max-w-full wrap-anywhere text-lg font-bold text-primary'
+              : 'inline-block min-h-7 max-w-full wrap-anywhere'
           const discountPrefix = key === 'discount' ? '− ' : ''
           const amount = loading ? (
             <Skeleton className="ml-auto h-7 w-28" />

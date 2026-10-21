@@ -101,7 +101,7 @@ export function NftPage({
           </span>
         </p>
       </div>
-      <div className="purchase-actions flex gap-3 items-center flex-1 tablet:flex-[0_1_auto]">
+      <div className="purchase-actions flex min-w-0 gap-3 items-center flex-1 tablet:flex-[0_1_auto]">
         <Button
           asChild
           className="nft-buy flex-1 tracking-[0.05em] tablet:min-w-32.5"

@@ -120,7 +120,9 @@ export function AccountFields({
             <PasswordField
               {...common}
               maxLength={128}
-              autoComplete={attributes.autoComplete}
+              autoComplete={
+                showsHint ? 'new-password' : attributes.autoComplete
+              }
               placeholder={t(name)}
               className={controlClass}
             />

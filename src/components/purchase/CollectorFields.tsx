@@ -60,6 +60,7 @@ export function CollectorFields({
                 >,
               ) => onChange(key, event.target.value),
               'aria-invalid': Boolean(error),
+              'aria-required': key !== 'secondary',
               'aria-describedby': error ? `${id}-error` : undefined,
             }
             const control = options ? (
