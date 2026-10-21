@@ -55,6 +55,31 @@
   --breakpoint-tablet: 700px;
   --breakpoint-desktop: 1100px;
   --breakpoint-wide: 1200px;
+  --animate-favorite-add: favorite-add 340ms ease-out;
+  --animate-favorite-remove: favorite-remove 260ms ease-out;
+  @keyframes favorite-add {
+    0%,
+    100% {
+      transform: scale(1) rotate(0);
+    }
+    40% {
+      transform: scale(1.22) rotate(-8deg);
+    }
+    70% {
+      transform: scale(0.96) rotate(3deg);
+    }
+  }
+  @keyframes favorite-remove {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    45% {
+      transform: scale(0.82);
+      opacity: 0.65;
+    }
+  }
   --animate-shimmer: shimmer 1.3s ease-in-out infinite;
   @keyframes shimmer {
     to {

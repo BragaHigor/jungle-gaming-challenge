@@ -1,3 +1,4 @@
+import { useSession } from '@/hooks/useSession'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useDemo } from '@/hooks/useDemo'
@@ -11,18 +12,29 @@ import { Select } from '@/components/ui/select'
 
 function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const { t } = useTranslation('demo')
+  const { session } = useSession()
   const { status, order, reset, emit, connected, lastEvent, invalidEvents } =
     useDemo()
   const [selection, setSelection] = useState<Scenario | null>(null)
   const { pathname } = useLocation()
   const isCatalogRoute = pathname === '/' || pathname.startsWith('/nfts/')
   const excludedScenario = pathname === '/' ? 'sold-out' : 'empty'
+  const privateScenarios = [
+    'session-expired',
+    'favorites-failure',
+    'favorites-ready',
+  ] as const
+  const isPrivateScenario = (scenario: Scenario) =>
+    privateScenarios.some((value) => value === scenario)
   const catalogScenarios = scenarios.filter(
-    (scenario) => scenario !== excludedScenario,
+    (scenario) =>
+      scenario !== excludedScenario &&
+      (!isPrivateScenario(scenario) || session),
   )
-  const visibleScenarios = isCatalogRoute
-    ? catalogScenarios
+  const accountScenarios = session
+    ? (['default', ...privateScenarios] as const)
     : (['default'] as const)
+  const visibleScenarios = isCatalogRoute ? catalogScenarios : accountScenarios
   const candidate = selection ?? status.data?.scenario ?? 'default'
   const selected = visibleScenarios.some((scenario) => scenario === candidate)
     ? candidate

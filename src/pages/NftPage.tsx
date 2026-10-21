@@ -9,6 +9,7 @@ import { NftGallery } from '@/components/nft/NftGallery'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { CatalogState } from '@/components/catalog/CatalogState'
 import { NftCard } from '@/components/catalog/NftCard'
+import { FavoriteButton } from '@/components/account/FavoriteButton'
 import { NftMobileHeader } from '@/components/nft/NftMobileHeader'
 import { NftPageSkeleton } from '@/components/nft/NftPageSkeleton'
 import { UnavailableAction } from '@/components/shared/UnavailableAction'
@@ -123,19 +124,19 @@ export function NftPage({
         >
           <Icon name="cart" />
         </UnavailableAction>
-        <UnavailableAction
+        <FavoriteButton
+          nftId={nft.id}
+          title={nft.title}
           className="nft-favorite border border-input text-primary-hover shrink-0 icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55"
-          aria-label={t('card:favorite', { title: nft.title })}
         >
-          <Icon name="heart" />
           <span className="max-tablet:hidden">{t('detail:favorite')}</span>
-        </UnavailableAction>
+        </FavoriteButton>
       </div>
     </>
   )
   return (
     <>
-      <NftMobileHeader title={nft.title} />
+      <NftMobileHeader title={nft.title} nftId={nft.id} />
       <nav
         className="nft-breadcrumb flex flex-wrap gap-3 mb-8 text-secondary text-[12px] max-tablet:hidden tablet:mb-2"
         aria-label={t('detail:breadcrumb')}

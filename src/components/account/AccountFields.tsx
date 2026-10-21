@@ -13,18 +13,15 @@ import { cn } from '@/utils/cn'
 
 type InputSettings = Pick<
   ComponentProps<'input'>,
-  'type' | 'autoComplete' | 'placeholder' | 'maxLength'
+  'type' | 'autoComplete' | 'maxLength'
 >
 const inputSettings: Partial<Record<AccountFieldName, InputSettings>> = {
   email: {
     type: 'email',
     autoComplete: 'email',
-    placeholder: 'contato@email.com',
   },
   username: { autoComplete: 'username', maxLength: 20 },
   displayName: { autoComplete: 'nickname' },
-  address: { placeholder: '0x…' },
-  ens: { placeholder: 'name.eth' },
   password: { autoComplete: 'current-password' },
   currentPassword: { autoComplete: 'current-password' },
   newPassword: { autoComplete: 'new-password' },
@@ -67,6 +64,7 @@ export function AccountFields({
   className?: string
 }) {
   const { t } = useTranslation('account')
+  const { t: example } = useTranslation('examples')
   const prefix = useId()
   return (
     <div
@@ -104,6 +102,11 @@ export function AccountFields({
           maxLength: 120,
           ...inputSettings[name],
         } as const
+        const exampleKey =
+          name === 'address' && values.network === 'Solana'
+            ? 'solanaAddress'
+            : name
+        const placeholder = example(exampleKey)
         const controlClass = compact
           ? 'min-h-11 max-tablet:min-h-[50px] max-tablet:rounded-xl'
           : undefined
@@ -112,7 +115,7 @@ export function AccountFields({
             {...attributes}
             {...common}
             className={controlClass}
-            placeholder={attributes.placeholder ?? t(name)}
+            placeholder={placeholder}
           />
         )
         if (passwordFields.includes(name))
@@ -123,7 +126,7 @@ export function AccountFields({
               autoComplete={
                 showsHint ? 'new-password' : attributes.autoComplete
               }
-              placeholder={t(name)}
+              placeholder={placeholder}
               className={controlClass}
             />
           )

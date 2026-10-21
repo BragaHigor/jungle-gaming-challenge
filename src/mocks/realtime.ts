@@ -3,6 +3,7 @@ import { toSocketIo } from '@mswjs/socket.io-binding'
 import { resourceEventSchema, type ResourceEvent } from '@/schemas/api/events'
 import { ethToWei, weiToEth } from '@/utils/eth'
 import { getSession, readDatabase, updateDatabase } from './database'
+import { requireUser } from './auth'
 import { MockError } from './responses'
 
 const socketUrl = new URL('/', location.href)
@@ -12,6 +13,7 @@ type Client = {
   bridge: ReturnType<typeof toSocketIo>
   generation: string
   userId?: string
+  token: string | null
   heartbeat: number
 }
 const clients = new Map<string, Client>()
@@ -35,6 +37,7 @@ export const realtimeHandler = link.addEventListener(
       bridge,
       generation,
       userId: session?.user.id,
+      token,
       heartbeat,
     })
     connection.client.addEventListener('close', () => {
@@ -50,15 +53,23 @@ export function closeConnections() {
   }
   clients.clear()
 }
-function broadcast(event: ResourceEvent) {
+async function broadcast(event: ResourceEvent) {
+  const database = await readDatabase()
   for (const client of clients.values()) {
     if (client.generation !== event.generation) continue
+    if (client.token && !getSession(database, client.token)) {
+      client.bridge.rawClient.close(4001, 'Invalid session')
+      continue
+    }
     if (event.type === 'order.updated' && client.userId !== event.userId)
       continue
     client.bridge.client.emit(event.type, event)
   }
 }
-export async function emitResourceEvent(type: 'nft.updated' | 'order.updated') {
+export async function emitResourceEvent(
+  type: 'nft.updated' | 'order.updated',
+  request?: Request,
+) {
   const initial = await readDatabase()
   if (initial.scenario === 'malformed-event') {
     for (const client of clients.values())
@@ -85,7 +96,11 @@ export async function emitResourceEvent(type: 'nft.updated' | 'order.updated') {
         data: nft,
       })
     }
-    const order = database.orders.find((value) => value.status === 'pending')
+    if (!request) throw new MockError('UNAUTHORIZED', 401)
+    const session = requireUser(database, request)
+    const order = database.orders.find(
+      (value) => value.status === 'pending' && value.userId === session.user.id,
+    )
     if (!order) throw new MockError('NOT_FOUND', 404)
     order.version += 1
     order.updatedAt = new Date().toISOString()
@@ -98,5 +113,5 @@ export async function emitResourceEvent(type: 'nft.updated' | 'order.updated') {
       data: order,
     })
   })
-  broadcast(event)
+  await broadcast(event)
 }

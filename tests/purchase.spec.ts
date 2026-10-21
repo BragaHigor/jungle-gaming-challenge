@@ -1,3 +1,4 @@
+import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import { createElement } from 'react'
@@ -96,12 +97,12 @@ test.describe('Visual do fluxo de compra', () => {
   test('valida os dados, revisa a seleção e mantém a compra sem recibo inventado', async ({
     page,
   }) => {
+    await visitWithAccount(page, '/checkout')
     const writes: string[] = []
     page.on('request', (request) => {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method()))
         writes.push(request.url())
     })
-    await visit(page, '/checkout')
     await page
       .getByRole('button', { name: 'Revisar compra', exact: true })
       .click()
@@ -160,7 +161,7 @@ test.describe('Visual do fluxo de compra', () => {
       page.getByRole('button', { name: 'Revisar compra', exact: true }),
     ).toBeFocused()
     expect(writes).toEqual([])
-    await visit(page, '/confirmation?status=confirmed')
+    await visitWithAccount(page, '/confirmation?status=confirmed')
     await expect(
       page.getByRole('heading', { name: 'Nenhum pedido para exibir' }),
     ).toBeVisible()
@@ -172,7 +173,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('traduz os erros e valida o endereço conforme a rede escolhida', async ({
     page,
   }) => {
-    await visit(page, '/checkout')
+    await visitWithAccount(page, '/checkout')
     await page
       .getByRole('combobox', { name: 'Rede', exact: true })
       .selectOption('Solana')
@@ -221,7 +222,7 @@ test.describe('Visual do fluxo de compra', () => {
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       for (const path of ['/cart', '/checkout', '/confirmation']) {
-        await visit(page, path)
+        await visitWithAccount(page, path)
         for (const locale of ['pt-BR', 'en']) {
           await language(page, locale)
           expect(
@@ -249,7 +250,7 @@ test.describe('Visual do fluxo de compra', () => {
     const html = await (await request.get('/')).text()
     const css = html.match(/href="([^"]+\.css)"/)?.[1]
     expect(css).toBeTruthy()
-    await visit(page, '/confirmation')
+    await visitWithAccount(page, '/confirmation')
     const order: OrderSnapshot = {
       id: 'DEMO-042',
       status: 'confirmed',

@@ -32,6 +32,8 @@ export const databaseSchema = z.strictObject({
   quotes: z.array(quoteSchema),
   orders: z.array(orderSchema),
   favorites: z.record(z.string(), z.array(z.string())),
+  favoriteVersions: z.record(z.string(), z.int().positive()).default({}),
+  favoriteFailures: z.array(z.string()).default([]),
   sessions: z.array(sessionRecordSchema),
   idempotency: z.record(
     z.string(),
@@ -298,17 +300,23 @@ export function getSession(database: Database, token?: string | null) {
     user: { id, username, displayName, email },
   }
 }
-function statusFromDatabase(database: Database): DemoStatus {
-  const token =
-    database.scenario === 'pending-order' ? database.sessions[0]?.token : null
+function statusFromDatabase(
+  database: Database,
+  token?: string | null,
+): DemoStatus {
+  const session = getSession(database, token)
   return {
     scenario: database.scenario,
     generation: database.generation,
-    session: getSession(database, token),
-    pendingOrderId: database.orders[0]?.id ?? null,
+    session,
+    pendingOrderId:
+      database.orders.find((order) => order.userId === session?.user.id)?.id ??
+      null,
   }
 }
 
-export async function getDemoStatus(): Promise<DemoStatus> {
-  return statusFromDatabase(await readDatabase())
+export async function getDemoStatus(
+  token?: string | null,
+): Promise<DemoStatus> {
+  return statusFromDatabase(await readDatabase(), token)
 }

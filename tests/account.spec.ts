@@ -1,3 +1,4 @@
+import { visitWithAccount, signInFixture } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import path from 'node:path'
@@ -12,12 +13,12 @@ const setLanguage = async (page: Page, locale: string) => {
   await selector.selectOption(locale)
   if (await page.getByRole('dialog', { name: 'Menu', exact: true }).count())
     await page.keyboard.press('Escape')
-  if (isAuth) await visit(page, route)
+  if (isAuth) await visitWithAccount(page, route)
 }
 const fillProfile = async (page: Page) => {
   await page
     .getByRole('textbox', { name: 'Nome de exibição', exact: true })
-    .fill('Colecionador')
+    .fill('Colecionador Editado')
   await page
     .getByRole('textbox', { name: 'Nome de usuário', exact: true })
     .fill('colecionador')
@@ -33,7 +34,7 @@ const fillProfile = async (page: Page) => {
 }
 
 test.describe('Visual de autenticação e conta', () => {
-  test('valida o login, alterna a senha e fecha os diálogos sem criar sessão', async ({
+  test('valida o login, alterna a senha e mostra falha sem criar sessão', async ({
     page,
   }) => {
     const writes: string[] = []
@@ -63,15 +64,16 @@ test.describe('Visual de autenticação e conta', () => {
       .click()
     await expect(password).toHaveAttribute('type', 'password')
     await dialog.getByRole('button', { name: 'Entrar', exact: true }).click()
-    await expect(
-      page.getByRole('dialog', { name: 'Conteúdo indisponível', exact: true }),
-    ).toBeVisible()
-    await page.keyboard.press('Escape')
+    await expect(page.getByRole('alert')).toHaveText(
+      'E-mail ou senha incorretos.',
+    )
     await expect(password).toHaveValue('')
     await expect(
       dialog.getByRole('button', { name: 'Entrar', exact: true }),
     ).toBeFocused()
-    expect(writes).toEqual([])
+    expect(
+      writes.filter((url) => url.endsWith('/api/auth/login')),
+    ).toHaveLength(1)
     expect(
       await page.evaluate(() => JSON.stringify({ ...localStorage })),
     ).not.toContain('SenhaFicticia123')
@@ -120,16 +122,13 @@ test.describe('Visual de autenticação e conta', () => {
     await page
       .getByRole('button', { name: /^Create (account|profile)$/ })
       .click()
-    await expect(
-      page.getByRole('dialog', { name: 'Content unavailable', exact: true }),
-    ).toBeVisible()
-    await expect(page).toHaveURL('/register')
+    await expect(page).toHaveURL('/')
   })
 
   test('valida a alteração de senha sem salvar perfil nem credenciais', async ({
     page,
   }) => {
-    await visit(page, '/profile')
+    await visitWithAccount(page, '/profile')
     await fillProfile(page)
     await page.getByLabel('Nova senha', { exact: true }).fill('NovaSenha123')
     await page.getByRole('button', { name: 'Salvar', exact: true }).click()
@@ -161,13 +160,13 @@ test.describe('Visual de autenticação e conta', () => {
     await page.reload()
     await expect(
       page.getByRole('textbox', { name: 'Nome de exibição', exact: true }),
-    ).toHaveValue('')
+    ).toHaveValue('Colecionador')
   })
 
   test('valida o avatar e permite prévia e remoção local da imagem', async ({
     page,
   }) => {
-    await visit(page, '/profile')
+    await visitWithAccount(page, '/profile')
     const upload = page.getByLabel('Escolher imagem do avatar', { exact: true })
     await upload.setInputFiles({
       name: 'arquivo.txt',
@@ -207,13 +206,22 @@ test.describe('Visual de autenticação e conta', () => {
   test('edita o rascunho de carteira e mantém as ações sem persistência fictícia', async ({
     page,
   }) => {
-    await visit(page, '/wallets?view=ready')
+    await visit(page, '/')
+    await page.evaluate(async () => {
+      await fetch('/api/demo/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario: 'pending-order' }),
+      })
+    })
+    await signInFixture(page)
+    await visitWithAccount(page, '/wallets?view=ready')
     await page
-      .getByRole('button', { name: 'Editar Reserva', exact: true })
+      .getByRole('button', { name: 'Editar Principal', exact: true })
       .click()
     await expect(
       page.getByRole('textbox', { name: 'Apelido da carteira', exact: true }),
-    ).toHaveValue('Reserva')
+    ).toHaveValue('Principal')
     await page
       .getByRole('combobox', { name: 'Rede', exact: true })
       .selectOption('Solana')
@@ -266,33 +274,29 @@ test.describe('Visual de autenticação e conta', () => {
   test('apresenta carregamento, falha, ausência de sessão e sessão expirada', async ({
     page,
   }) => {
-    await visit(page, '/profile?view=loading')
+    await visitWithAccount(page, '/profile?view=loading')
     await expect(
       page.getByLabel('Carregando dados da conta', { exact: true }),
     ).toHaveAttribute('aria-busy', 'true')
     await expect(
       page.getByRole('button', { name: 'Salvar', exact: true }),
     ).toHaveCount(0)
-    await visit(page, '/wallets?view=error')
+    await visitWithAccount(page, '/wallets?view=error')
     await page
       .getByRole('button', { name: 'Tentar novamente', exact: true })
       .click()
     await expect(
       page.getByRole('button', { name: 'Salvar carteira', exact: true }),
     ).toBeVisible()
-    await visit(page, '/profile?view=expired')
+    await visitWithAccount(page, '/profile?view=expired')
     await expect(
       page.getByRole('heading', { name: 'Sua sessão expirou', exact: true }),
     ).toBeVisible()
     await expect(page.getByRole('textbox')).toHaveCount(0)
-    await visit(page, '/wallets?view=signedOut')
+    await visitWithAccount(page, '/wallets?view=signedOut')
     await expect(
       page.getByRole('heading', { name: 'Entre para continuar', exact: true }),
     ).toBeVisible()
-    await visit(page, '/login?view=loading')
-    await expect(
-      page.getByRole('button', { name: 'Aguarde…', exact: true }),
-    ).toBeDisabled()
   })
 
   test('mantém as quatro telas sem overflow em português e inglês', async ({
@@ -301,7 +305,7 @@ test.describe('Visual de autenticação e conta', () => {
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 896 })
       for (const route of ['/login', '/register', '/profile', '/wallets']) {
-        await visit(page, route)
+        await visitWithAccount(page, route)
         for (const locale of ['pt-BR', 'en']) {
           await setLanguage(page, locale)
           expect(

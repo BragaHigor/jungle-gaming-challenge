@@ -1,6 +1,8 @@
 import { z } from 'zod'
 
 export const accountErrorCodes = [
+  'emailTaken',
+  'usernameTaken',
   'required',
   'invalid',
   'emailInvalid',
@@ -138,3 +140,8 @@ export type WalletDraft = z.infer<typeof walletSchema>
 export type AccountViewState = NonNullable<
   z.infer<typeof accountSearchSchema>['view']
 >
+
+export const authSearchSchema = z.object({
+  redirect: z.string().optional(),
+  reason: z.enum(['expired']).optional(),
+})

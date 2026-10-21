@@ -1,3 +1,5 @@
+import { FavoritesDialog } from '@/components/account/FavoritesDialog'
+import { useSession } from '@/hooks/useSession'
 import { cn } from '@/utils/cn'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -10,6 +12,7 @@ import { Icon } from '@/components/ui/Icon'
 
 export function Header() {
   const { t } = useTranslation('navigation')
+  const { session } = useSession()
   const { pathname, hash } = useLocation()
   const marketActive =
     pathname.startsWith('/nfts') ||
@@ -65,6 +68,12 @@ export function Header() {
             <LanguageSelect compact />
           </div>
           <SearchDialog />
+          <FavoritesDialog
+            label={t('favorites')}
+            className="hidden tablet:grid size-11 place-items-center text-primary"
+          >
+            <Icon name="heart" />
+          </FavoritesDialog>
           <Link
             to="/cart"
             className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 header-cart max-tablet:hidden"
@@ -74,11 +83,14 @@ export function Header() {
           </Link>
           <Button
             asChild
-            className="header-login max-desktop:hidden min-h-9 px-3 font-medium"
+            className="header-login max-desktop:hidden min-h-9 shrink-0 whitespace-nowrap px-3 font-medium"
           >
-            <Link to="/login">
+            <Link
+              to={session ? '/profile' : '/login'}
+              aria-label={session ? t('profile') : t('signIn')}
+            >
               <Icon name="login" className="size-5" />
-              {t('signIn')}
+              {session ? t('profile') : t('signIn')}
             </Link>
           </Button>
           <NavigationMenu className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 mobile-menu-trigger desktop:hidden max-desktop:inline-grid" />

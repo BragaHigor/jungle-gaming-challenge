@@ -37,7 +37,9 @@
     "account": "My account",
     "favorites": "Favorites",
     "scan": "Scan",
-    "wallets": "Wallets"
+    "wallets": "Wallets",
+    "signOut": "Sign out",
+    "profile": "Profile"
   },
   "card": {
     "rare": "RARE",
@@ -47,7 +49,12 @@
     "emeraldAlt": "Ape wearing round sunglasses and a green jacket",
     "sageAlt": "Ape wearing a green hat and a lilac hoodie",
     "neonAlt": "Ape wearing dark sunglasses and a light jacket",
-    "goldenAlt": "Golden ape wearing green headphones"
+    "goldenAlt": "Golden ape wearing green headphones",
+    "favoriteError": "Could not update favorites. Please try again.",
+    "favoritesEmpty": "You have no favorites yet.",
+    "favoritesLoading": "Loading favorites…",
+    "favoritesLoadError": "Could not load your favorites.",
+    "retry": "Try again"
   },
   "footer": {
     "walletSecurity": "Wallet security",
@@ -59,7 +66,7 @@
     "newsletter": "Be first for the next drop",
     "newsletterText": "Get curated drops, creator stories and marketplace updates.",
     "email": "Email for updates",
-    "emailPlaceholder": "enter your email...",
+    "emailPlaceholder": "e.g.: colecionador@kurio.demo",
     "send": "Send",
     "invalidEmail": "Enter a valid email address.",
     "newsletterUnavailable": "Updates subscription is unavailable.",
@@ -96,7 +103,7 @@
     "highlights": "Highlights",
     "heroSlides": "Marketplace highlights",
     "slide": "Show highlight {{number}}",
-    "searchPlaceholder": "Explore collections",
+    "searchPlaceholder": "e.g.: Emerald Ape",
     "searchHelp": "Find an artwork by name in the catalog.",
     "search": "Search",
     "filters": "Filters",
@@ -226,7 +233,7 @@
     "market": "Market",
     "summary": "Wallet summary",
     "coupon": "Promotional code",
-    "couponPlaceholder": "Enter your promotional code",
+    "couponPlaceholder": "e.g.: KURIO10",
     "apply": "Apply",
     "couponRequired": "Enter a promotional code.",
     "couponUnavailable": "Coupons are currently unavailable. No discount has been applied.",
@@ -375,7 +382,11 @@
     "expired": "Your session has expired",
     "signedOut": "Sign in to continue",
     "signInToContinue": "Sign in to manage your details and wallets.",
-    "createProfile": "Create profile"
+    "createProfile": "Create profile",
+    "invalidCredentials": "Incorrect email or password.",
+    "emailTaken": "This email is already registered.",
+    "usernameTaken": "This username is already taken.",
+    "sessionError": "Could not recover your session. Please try again."
   },
   "demo": {
     "open": "Demonstration",
@@ -428,6 +439,32 @@
     "effect_forbidden": "Returns forbidden access during requests.",
     "effect_malformed-response": "Returns invalid data to exercise contract validation.",
     "effect_malformed-event": "Sends an invalid event that must be ignored.",
-    "effect_pending-order": "Prepares a pending order for a fictitious account, without confirming payment."
+    "effect_pending-order": "Resets the data and prepares a pending order. Sign in as colecionador to inspect it without confirming payment.",
+    "scenario_session-expired": "Expired session",
+    "effect_session-expired": "Expires only your current session and opens login with return to this page.",
+    "scenario_favorites-failure": "Favorites failure",
+    "effect_favorites-failure": "Fails to save favorites for your user. The heart changes immediately and rolls back after failure.",
+    "scenario_favorites-ready": "Restore favorites",
+    "effect_favorites-ready": "Restores saving favorites without deleting data or signing out."
+  },
+  "examples": {
+    "displayName": "e.g.: Alex Silva",
+    "username": "e.g.: alexsilva",
+    "email": "e.g.: colecionador@kurio.demo",
+    "password": "e.g.: Kurio@2026",
+    "confirm": "e.g.: Kurio@2026",
+    "currentPassword": "e.g.: Kurio@2026",
+    "newPassword": "e.g.: NewPassword2026",
+    "confirmPassword": "e.g.: NewPassword2026",
+    "ens": "e.g.: alexsilva.eth",
+    "walletNickname": "e.g.: My wallet",
+    "profileName": "e.g.: Alex’s collection",
+    "address": "e.g.: 0x1111111111111111111111111111111111111111",
+    "solanaAddress": "e.g.: 11111111111111111111111111111111",
+    "secondary": "e.g.: alexsilva.eth",
+    "referral": "e.g.: KURIO",
+    "note": "e.g.: A gift for my collection",
+    "network": "e.g.: Ethereum",
+    "walletType": "e.g.: MetaMask"
   }
 }
