@@ -78,7 +78,7 @@ export function CartPage({
             />
           )}
         </section>
-        <aside className="max-tablet:-mx-[var(--page-gutter)] max-tablet:rounded-t-[32px] max-tablet:bg-[image:var(--gradient-surface)] max-tablet:p-6">
+        <aside className="min-w-0 max-tablet:-mx-[var(--page-gutter)] max-tablet:rounded-t-[32px] max-tablet:bg-[image:var(--gradient-surface)] max-tablet:p-6">
           <OrderSummary
             totals={presentationTotals(items)}
             loading={loading}

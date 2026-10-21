@@ -28,7 +28,7 @@ export function MobileNavigation() {
         <Icon name="heart" />
       </UnavailableAction>
       <UnavailableAction
-        className="mobile-navigation__scan max-tablet:justify-self-center max-tablet:relative max-tablet:-top-6 max-tablet:w-18 max-tablet:h-18 max-tablet:border-[0.375rem] max-tablet:border-background max-tablet:rounded-full max-tablet:[background:var(--gradient-copper)] max-tablet:text-foreground max-tablet:grid max-tablet:place-items-center max-tablet:min-h-14"
+        className="mobile-navigation__scan max-tablet:justify-self-center max-tablet:relative max-tablet:-top-6 max-tablet:w-18 max-tablet:h-18 max-tablet:border-[0.375rem] max-tablet:border-background max-tablet:rounded-full max-tablet:[background:var(--gradient-copper)] max-tablet:text-primary-foreground max-tablet:grid max-tablet:place-items-center max-tablet:min-h-14"
         aria-label={t('scan')}
       >
         <Icon name="scan" />

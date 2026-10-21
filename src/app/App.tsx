@@ -42,7 +42,9 @@ export function App() {
   }, [t])
 
   return (
-    <div className={`site-layout pt-6 max-tablet:pt-2 ${pageClass}`}>
+    <div
+      className={`site-layout wrap-anywhere pt-6 max-tablet:pt-2 ${pageClass}`}
+    >
       <a
         href="#content"
         className="skip-link fixed top-2 left-2 z-100 pt-3 pr-4 pb-3 pl-4 rounded-md bg-primary text-background [transform:translateY(-200%)] focus:[transform:translateY(0)]"
