@@ -22,6 +22,13 @@ const editions = [
 ] as const
 const tabKeys = ['description', 'reviews'] as const
 
+const getNextTabIndex = (key: string, currentIndex: number) => {
+  const edgeIndexes = { Home: 0, End: tabKeys.length - 1 }
+  if (key === 'Home' || key === 'End') return edgeIndexes[key]
+  const direction = key === 'ArrowRight' ? 1 : -1
+  return (currentIndex + direction + tabKeys.length) % tabKeys.length
+}
+
 export function NftPage({
   nft,
   related,
@@ -40,23 +47,24 @@ export function NftPage({
   const [relatedIndex, setRelatedIndex] = useState(0)
   const relatedTrack = useRef<HTMLDivElement>(null)
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
-  if (state !== 'ready' || !nft)
+  if (state !== 'ready' || !nft) {
+    const unavailableState = nft && state !== 'ready' ? state : 'unavailable'
+    const content =
+      nft && state === 'loading' ? (
+        <NftPageSkeleton />
+      ) : (
+        <CatalogState state={unavailableState} titleAs="h1" onReset={onRetry} />
+      )
     return (
       <>
         <NftMobileHeader />
-        {nft && state === 'loading' ? (
-          <NftPageSkeleton />
-        ) : (
-          <CatalogState
-            state={
-              !nft ? 'unavailable' : state === 'ready' ? 'unavailable' : state
-            }
-            titleAs="h1"
-            onReset={onRetry}
-          />
-        )}
+        {content}
       </>
     )
+  }
+  const selectedEdition = editions[edition]
+  const editionLabel =
+    selectedEdition.key === 'open' ? t('detail:open') : selectedEdition.key
   const metadata = (
     <dl className="nft-metadata flex flex-col gap-3 pt-5 border-t border-t-border text-secondary max-tablet:mt-5 max-tablet:pt-0 max-tablet:border-0 max-tablet:gap-3 max-tablet:text-[13px] tablet:pt-0 tablet:border-0">
       <div className="flex flex-wrap gap-2">
@@ -192,10 +200,7 @@ export function NftPage({
             <span className="hero-mobile hidden max-tablet:inline">
               {t('detail:mobileDescription', {
                 network: nft.network,
-                edition:
-                  editions[edition].key === 'open'
-                    ? t('detail:open')
-                    : editions[edition].key,
+                edition: editionLabel,
               })}
             </span>
           </p>
@@ -272,12 +277,7 @@ export function NftPage({
                 )
                   return
                 event.preventDefault()
-                const next =
-                  event.key === 'Home'
-                    ? 0
-                    : event.key === 'End'
-                      ? 1
-                      : (index + (event.key === 'ArrowRight' ? 1 : -1) + 2) % 2
+                const next = getNextTabIndex(event.key, index)
                 setTab(next)
                 tabs.current[next]?.focus()
               }}
@@ -301,10 +301,7 @@ export function NftPage({
                 <p>
                   {t('detail:descriptionText', {
                     title: nft.title,
-                    edition:
-                      editions[edition].key === 'open'
-                        ? t('detail:open')
-                        : editions[edition].key,
+                    edition: editionLabel,
                     network: nft.network,
                   })}
                 </p>

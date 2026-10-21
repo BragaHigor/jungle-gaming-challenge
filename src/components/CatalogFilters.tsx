@@ -25,11 +25,11 @@ export function CatalogSort({
       )}
       htmlFor={id}
     >
-      {t('sort')}
+      <span className="shrink-0">{t('sort')}</span>
       <Select
         id={id}
         className={cn(
-          'w-auto border-0 pl-0 text-[11px]',
+          'inline-flex w-auto items-center border-0 pl-0 text-[11px]',
           stacked &&
             'max-tablet:w-full max-tablet:border max-tablet:border-input max-tablet:pl-3 max-tablet:text-[14px]',
         )}

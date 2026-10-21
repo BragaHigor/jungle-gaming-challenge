@@ -5,15 +5,25 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { MobileNavigation } from '@/components/layout/MobileNavigation'
 
+const pageClasses = {
+  home: 'site-layout--home max-tablet:[&>.site-header]:hidden',
+  nft: 'site-layout--nft max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-[calc(200px_+_env(safe-area-inset-bottom))] max-tablet:[@media(max-height:500px)]:pb-0 max-tablet:[&_.page-content]:mt-0',
+  purchase:
+    'max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-0 max-tablet:[&_.page-content]:mt-4',
+}
+
+const getPageClass = (pathname: string) => {
+  if (pathname === '/') return pageClasses.home
+  if (pathname.startsWith('/nfts/')) return pageClasses.nft
+  if (['/cart', '/checkout', '/confirmation'].includes(pathname))
+    return pageClasses.purchase
+  return ''
+}
+
 export function App() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
-  const pageClass =
-    pathname === '/'
-      ? 'site-layout--home max-tablet:[&>.site-header]:hidden'
-      : pathname.startsWith('/nfts/')
-        ? 'site-layout--nft max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-[calc(200px_+_env(safe-area-inset-bottom))] max-tablet:[@media(max-height:500px)]:pb-0 max-tablet:[&_.page-content]:mt-0'
-        : ''
+  const pageClass = getPageClass(pathname)
 
   useEffect(() => {
     document.title = t('pageTitle')

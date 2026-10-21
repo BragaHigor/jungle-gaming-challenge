@@ -106,7 +106,7 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await page.goto('/cart')
+    await page.goto('/wallets')
     await page
       .getByRole('navigation', { name: 'Navegação mobile', exact: true })
       .getByRole('link', { name: 'Minha conta', exact: true })
