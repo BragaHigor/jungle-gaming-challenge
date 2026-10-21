@@ -19,7 +19,7 @@ import {
 } from './AccountRoutes'
 import { queryClient } from './query-client'
 import { sessionOptions, safeReturn, readToken } from '@/services/session'
-import { accountSearchSchema, authSearchSchema } from '@/schemas/account'
+import { authSearchSchema } from '@/schemas/account'
 import { parseSearch, stringifySearch } from '@/utils/search'
 
 const requireAccount = async ({ location }: { location: { href: string } }) => {
@@ -94,14 +94,14 @@ export const router = createRouter({
       getParentRoute: () => rootRoute,
       path: '/profile',
       beforeLoad: requireAccount,
-      validateSearch: (search) => accountSearchSchema.parse(search),
+      validateSearch: () => ({}),
       component: ProfileRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/wallets',
       beforeLoad: requireAccount,
-      validateSearch: (search) => accountSearchSchema.parse(search),
+      validateSearch: () => ({}),
       component: WalletsRoute,
     }),
   ]),

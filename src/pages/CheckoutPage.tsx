@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
@@ -25,11 +25,17 @@ export function CheckoutPage({
   wallets,
   totals,
   quoteReady = false,
+  quoteLoading = false,
+  quotedNetwork,
+  onNetworkChange,
 }: {
   items: readonly PurchaseItem[]
   wallets: readonly WalletOption[]
   totals?: PurchaseTotals
   quoteReady?: boolean
+  quoteLoading?: boolean
+  quotedNetwork?: WalletOption['network']
+  onNetworkChange?: (network: WalletOption['network']) => void
 }) {
   const { t } = useTranslation('purchase')
   const [draft, setDraft] = useState<CollectorDraft>({
@@ -39,7 +45,7 @@ export function CheckoutPage({
     profileName: '',
     address: wallets[0]?.address ?? '',
     secondary: '',
-    walletType: 'Coinbase Wallet',
+    walletType: wallets[0]?.walletType ?? 'Coinbase Wallet',
     referral: '',
     email: '',
     ens: '',
@@ -47,10 +53,25 @@ export function CheckoutPage({
   })
   const [errors, setErrors] = useState<CollectorErrors>({})
   const [selected, setSelected] = useState(wallets[0]?.id ?? '')
+  const lastSelected = useRef(wallets[0]?.id ?? '')
   const [otherWallet, setOtherWallet] = useState(false)
   const [review, setReview] = useState(false)
   const fields = useRef<HTMLDetailsElement>(null)
   const reviewButton = useRef<HTMLButtonElement>(null)
+  const selectedWallet = wallets.find((wallet) => wallet.id === selected)
+  const staleSelection =
+    !otherWallet &&
+    wallets.length > 0 &&
+    (!selectedWallet ||
+      selectedWallet.address !== draft.address ||
+      selectedWallet.network !== draft.network)
+  const canReview =
+    quoteReady &&
+    !staleSelection &&
+    (!quotedNetwork || quotedNetwork === draft.network)
+  useEffect(() => {
+    onNetworkChange?.(draft.network)
+  }, [draft.network, onNetworkChange])
   function change(key: keyof CollectorDraft, value: string) {
     if (key === 'address' || key === 'network') {
       setSelected('')
@@ -62,39 +83,51 @@ export function CheckoutPage({
   const handleOtherWalletChange = (checked: boolean) => {
     setOtherWallet(checked)
     if (checked) {
+      lastSelected.current = selected
       setSelected('')
       setDraft((current) => ({ ...current, address: '' }))
       return
     }
-    const defaultWallet = wallets[0]
+    const defaultWallet =
+      wallets.find((wallet) => wallet.id === lastSelected.current) ?? wallets[0]
     setSelected(defaultWallet?.id ?? '')
     setDraft((current) => ({
       ...current,
       address: defaultWallet?.address ?? '',
       network: defaultWallet?.network ?? 'Ethereum',
+      walletType: defaultWallet?.walletType ?? current.walletType,
+    }))
+    setErrors((current) => ({
+      ...current,
+      address: undefined,
+      network: undefined,
+      walletType: undefined,
     }))
   }
   const handleWalletSelection = (id: string) => {
     const wallet = wallets.find((item) => item.id === id)
     if (!wallet) return
     setSelected(id)
+    lastSelected.current = id
     setOtherWallet(false)
     setDraft((current) => ({
       ...current,
       address: wallet.address,
       network: wallet.network,
+      walletType: wallet.walletType ?? current.walletType,
     }))
     setErrors((current) => ({
       ...current,
       address: undefined,
       network: undefined,
+      walletType: undefined,
     }))
   }
   const validationMessage = Object.values(errors).some(Boolean)
     ? t('fixFields')
     : ''
   function validate() {
-    if (!quoteReady || !totals) return
+    if (!canReview || !totals) return
     const result = collectorSchema.safeParse(draft)
     if (!result.success) {
       setErrors(
@@ -151,7 +184,12 @@ export function CheckoutPage({
               <section className="hidden tablet:block" aria-label={t('items')}>
                 <h2 className="mb-4 text-lg font-bold">{t('items')}</h2>
                 <PurchaseItems items={items} />
-                <OrderSummary totals={totals} coupon compact />
+                <OrderSummary
+                  totals={totals}
+                  loading={quoteLoading}
+                  coupon
+                  compact
+                />
               </section>
               <WalletSelection
                 provider={draft.walletType}
@@ -166,7 +204,12 @@ export function CheckoutPage({
                     {t('items')}
                   </summary>
                   <PurchaseItems items={items} />
-                  <OrderSummary totals={totals} coupon compact />
+                  <OrderSummary
+                    totals={totals}
+                    loading={quoteLoading}
+                    coupon
+                    compact
+                  />
                 </details>
               </div>
               <div className="flex justify-end gap-5 font-bold tablet:hidden">
@@ -175,10 +218,27 @@ export function CheckoutPage({
                   {totals?.total ?? '—'} ETH
                 </strong>
               </div>
+              {staleSelection && (
+                <div
+                  role="alert"
+                  className="space-y-2 text-sm text-destructive"
+                >
+                  <p>{t('walletSelectionChanged')}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      handleWalletSelection(selectedWallet?.id ?? wallets[0].id)
+                    }
+                  >
+                    {t('reloadWallet')}
+                  </Button>
+                </div>
+              )}
               <Button
                 type="button"
                 ref={reviewButton}
-                disabled={!quoteReady}
+                disabled={!canReview}
                 onClick={validate}
                 className="w-full max-tablet:min-h-15 max-tablet:rounded-full max-tablet:bg-[image:var(--gradient-copper)]"
               >
@@ -215,8 +275,8 @@ export function CheckoutPage({
                   </dd>
                 </div>
               </dl>
-              <OrderSummary totals={totals} />
-              {!quoteReady && (
+              <OrderSummary totals={totals} loading={quoteLoading} />
+              {!canReview && (
                 <div
                   role="alert"
                   className="space-y-2 text-sm text-destructive"
@@ -231,7 +291,7 @@ export function CheckoutPage({
                 </div>
               )}
               <UnavailableAction
-                disabled={!quoteReady}
+                disabled={!canReview}
                 className="min-h-11 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground"
               >
                 {t('confirm')}

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useCatalogQuery } from '@/hooks/useNftQueries'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -5,24 +6,12 @@ import { Button } from '@/components/ui/button'
 import { useCart, useCartQuote } from '@/hooks/useCart'
 import { CartPage } from '@/pages/CartPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
+import { useWalletsData } from '@/hooks/useAccountData'
+import { useSession } from '@/hooks/useSession'
+import { QueryFeedback } from '@/components/shared/QueryFeedback'
+import { AccountState } from '@/components/account/AccountState'
 import type { WalletOption } from '@/types/purchase'
 
-const wallets: readonly WalletOption[] = [
-  {
-    id: 'reserve',
-    name: 'reserve',
-    label: 'nova.kurio.eth',
-    address: '0x1111111111111111111111111111111111111111',
-    network: 'Polygon',
-  },
-  {
-    id: 'primary',
-    name: 'primary',
-    label: '0xA91F…E82C',
-    address: '0xA91F00000000000000000000000000000000E82C',
-    network: 'Ethereum',
-  },
-]
 export function CartRoute() {
   const related = useCatalogQuery({ pageSize: 5 })
   return <CartPage related={related.data?.items ?? []} />
@@ -30,8 +19,26 @@ export function CartRoute() {
 
 export function CheckoutRoute() {
   const { t } = useTranslation('purchase')
+  const { session } = useSession()
+  const { query: walletQuery } = useWalletsData()
+  const primary = walletQuery.data?.find((wallet) => wallet.primary)
+  const wallets: WalletOption[] = (walletQuery.data ?? [])
+    .filter((wallet) => wallet.primary || !primary?.sameAsPrimary)
+    .map((wallet) => ({
+      id: wallet.id,
+      name: wallet.primary ? 'primary' : 'reserve',
+      label: wallet.label,
+      address: wallet.draft.address,
+      network: wallet.draft.network,
+      walletType: wallet.draft.walletType,
+    }))
   const cart = useCart()
-  const quote = useCartQuote()
+  const [selectedNetwork, setSelectedNetwork] = useState<
+    WalletOption['network'] | null
+  >(null)
+  const quote = useCartQuote(
+    selectedNetwork ?? wallets[0]?.network ?? 'Ethereum',
+  )
   const data = quote.query.data
   const ready = Boolean(
     data &&
@@ -44,10 +51,19 @@ export function CheckoutRoute() {
     cart.query.data?.stockValid &&
     (!data.requiresReview || cart.reviewedId === data.id),
   )
+  const showCartWarning =
+    !ready &&
+    Boolean(
+      quote.query.isError ||
+      quote.expired ||
+      data?.requiresReview ||
+      cart.query.isError ||
+      cart.query.data?.stockValid === false,
+    )
   if (!cart.query.data?.lines.length) return <CartPage related={[]} />
   return (
     <>
-      {!ready && (
+      {showCartWarning && (
         <div role="alert" className="mb-5 space-y-3 text-sm text-primary">
           <p>{t('returnToCart')}</p>
           <Button asChild variant="outline">
@@ -55,12 +71,37 @@ export function CheckoutRoute() {
           </Button>
         </div>
       )}
-      <CheckoutPage
-        items={cart.query.data.lines}
-        wallets={wallets}
-        totals={data?.totals}
-        quoteReady={ready}
-      />
+      <QueryFeedback query={walletQuery} resource="account" />
+      {!walletQuery.data && (
+        <AccountState
+          state={walletQuery.isError ? 'error' : 'loading'}
+          onRetry={() => void walletQuery.refetch()}
+        />
+      )}
+      {walletQuery.data && !wallets.length && (
+        <p role="status" className="my-5 text-sm">
+          {t('noWallets')}{' '}
+          <Link to="/wallets" className="underline">
+            {t('manageWallets')}
+          </Link>
+        </p>
+      )}
+      {walletQuery.data && (
+        <CheckoutPage
+          key={session?.token}
+          items={cart.query.data.lines}
+          wallets={wallets}
+          totals={data?.totals}
+          quotedNetwork={data?.network}
+          quoteReady={ready && wallets.length > 0 && !walletQuery.isError}
+          quoteLoading={
+            quote.query.isFetching ||
+            cart.query.isFetching ||
+            cart.mutation.isPending
+          }
+          onNetworkChange={setSelectedNetwork}
+        />
+      )}
     </>
   )
 }

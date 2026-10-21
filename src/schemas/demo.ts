@@ -27,6 +27,11 @@ export const scenarios = [
   'cart-stock-change',
   'cart-ready',
   'cart-slow',
+  'account-slow',
+  'account-read-failure',
+  'account-write-failure',
+  'account-validation',
+  'account-ready',
 ] as const
 export const scenarioSchema = z.enum(scenarios)
 export const demoRequestSchema = z.strictObject({ scenario: scenarioSchema })

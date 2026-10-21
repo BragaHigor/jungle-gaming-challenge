@@ -1,3 +1,4 @@
+import { seedWallets } from './helpers/account'
 import { test, expect, type Page } from '@playwright/test'
 import { visit } from './helpers/navigation'
 import { signInFixture, submitLogin } from './helpers/auth'
@@ -449,6 +450,7 @@ test('bloqueia a confirmação já aberta se a cotação expirar durante a revis
   await visit(page, '/')
   await signInFixture(page)
   await add(page)
+  await seedWallets(page)
   await visit(page, '/checkout')
   for (const [name, value] of [
     ['Nome de exibição', 'Alex Silva'],

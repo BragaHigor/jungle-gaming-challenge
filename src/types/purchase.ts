@@ -26,6 +26,7 @@ export type OrderSnapshot = {
 export type WalletOption = {
   id: string
   name: 'reserve' | 'primary'
+  walletType?: 'WalletConnect' | 'MetaMask' | 'Coinbase Wallet'
   address: string
   label: string
   network: 'Ethereum' | 'Polygon' | 'Solana'

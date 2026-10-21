@@ -4,7 +4,9 @@ import { Button } from '@/components/ui/button'
 
 export function QueryFeedback({
   query,
+  resource = 'catalog',
 }: {
+  resource?: 'catalog' | 'account'
   query: {
     data: unknown
     error: Error | null
@@ -12,7 +14,7 @@ export function QueryFeedback({
     refetch: () => unknown
   }
 }) {
-  const { t } = useTranslation('catalog')
+  const { t } = useTranslation(resource)
   if (query.error && !query.data) {
     const contract =
       query.error instanceof ApiError && query.error.code === 'CONTRACT'

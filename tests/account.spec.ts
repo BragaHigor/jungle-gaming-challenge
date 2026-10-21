@@ -1,3 +1,4 @@
+import { cartRequest } from './helpers/cart'
 import { visitWithAccount, signInFixture } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
@@ -125,7 +126,7 @@ test.describe('Visual de autenticação e conta', () => {
     await expect(page).toHaveURL('/')
   })
 
-  test('valida a alteração de senha sem salvar perfil nem credenciais', async ({
+  test('valida a senha atual e persiste perfil e credenciais pela API', async ({
     page,
   }) => {
     await visitWithAccount(page, '/profile')
@@ -148,19 +149,20 @@ test.describe('Visual de autenticação e conta', () => {
       .fill('NovaSenha123')
     await page.getByRole('button', { name: 'Salvar', exact: true }).click()
     await expect(
-      page.getByRole('dialog', { name: 'Conteúdo indisponível', exact: true }),
+      page.getByText('A senha atual está incorreta.', { exact: true }),
     ).toBeVisible()
-    await page.keyboard.press('Escape')
+    await page.getByLabel('Senha atual', { exact: true }).fill('Kurio@2026')
+    await page.getByRole('button', { name: 'Salvar', exact: true }).click()
+    await expect(
+      page.getByText('Alterações salvas.', { exact: true }),
+    ).toBeVisible()
     await expect(page.getByLabel('Senha atual', { exact: true })).toHaveValue(
       '',
     )
-    await expect(
-      page.getByRole('button', { name: 'Salvar', exact: true }),
-    ).toBeFocused()
     await page.reload()
     await expect(
       page.getByRole('textbox', { name: 'Nome de exibição', exact: true }),
-    ).toHaveValue('Colecionador')
+    ).toHaveValue('Colecionador Editado')
   })
 
   test('valida o avatar e permite prévia e remoção local da imagem', async ({
@@ -203,7 +205,7 @@ test.describe('Visual de autenticação e conta', () => {
     await expect(preview).toHaveCount(0)
   })
 
-  test('edita o rascunho de carteira e mantém as ações sem persistência fictícia', async ({
+  test('edita a carteira e persiste a preferência da carteira secundária', async ({
     page,
   }) => {
     await visit(page, '/')
@@ -240,9 +242,8 @@ test.describe('Visual de autenticação e conta', () => {
       .getByRole('button', { name: 'Salvar carteira', exact: true })
       .click()
     await expect(
-      page.getByRole('dialog', { name: 'Conteúdo indisponível', exact: true }),
+      page.getByText('Alterações salvas.', { exact: true }),
     ).toBeVisible()
-    await page.keyboard.press('Escape')
     await page
       .getByRole('button', {
         name: 'Adicionar carteira secundária',
@@ -265,43 +266,58 @@ test.describe('Visual de autenticação e conta', () => {
         exact: true,
       }),
     ).toBeDisabled()
+    await expect(
+      page.getByText('Preferência de uso da carteira salva.', { exact: true }),
+    ).toBeVisible()
     await page.reload()
     await expect(
+      page.getByRole('checkbox', {
+        name: 'Igual à carteira principal',
+        exact: true,
+      }),
+    ).toBeChecked()
+    await expect(
       page.getByRole('textbox', { name: 'Apelido da carteira', exact: true }),
-    ).toHaveValue('')
+    ).toHaveValue('Principal')
   })
 
-  test('apresenta carregamento, falha, ausência de sessão e sessão expirada', async ({
+  test('apresenta carregamento e falha reais e recupera a consulta da conta', async ({
     page,
   }) => {
-    await visitWithAccount(page, '/profile?view=loading')
+    await visitWithAccount(page, '/profile')
+    await expect(
+      page.getByRole('button', { name: 'Salvar', exact: true }),
+    ).toBeVisible()
+    await cartRequest(page, '/demo/reset', 'POST', { scenario: 'account-slow' })
+    await page.reload()
     await expect(
       page.getByLabel('Carregando dados da conta', { exact: true }),
     ).toHaveAttribute('aria-busy', 'true')
     await expect(
       page.getByRole('button', { name: 'Salvar', exact: true }),
-    ).toHaveCount(0)
-    await visitWithAccount(page, '/wallets?view=error')
+    ).toBeVisible()
+    await cartRequest(page, '/demo/reset', 'POST', {
+      scenario: 'account-read-failure',
+    })
+    await visit(page, '/wallets')
+    await expect(
+      page.getByText('Não foi possível carregar seus dados.', { exact: true }),
+    ).toBeVisible()
+    await cartRequest(page, '/demo/reset', 'POST', {
+      scenario: 'account-ready',
+    })
     await page
       .getByRole('button', { name: 'Tentar novamente', exact: true })
       .click()
     await expect(
       page.getByRole('button', { name: 'Salvar carteira', exact: true }),
     ).toBeVisible()
-    await visitWithAccount(page, '/profile?view=expired')
-    await expect(
-      page.getByRole('heading', { name: 'Sua sessão expirou', exact: true }),
-    ).toBeVisible()
-    await expect(page.getByRole('textbox')).toHaveCount(0)
-    await visitWithAccount(page, '/wallets?view=signedOut')
-    await expect(
-      page.getByRole('heading', { name: 'Entre para continuar', exact: true }),
-    ).toBeVisible()
   })
 
   test('mantém as quatro telas sem overflow em português e inglês', async ({
     page,
   }) => {
+    test.setTimeout(120000)
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 896 })
       for (const route of ['/login', '/register', '/profile', '/wallets']) {

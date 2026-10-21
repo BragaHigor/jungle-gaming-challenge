@@ -89,6 +89,7 @@ export function AuthPage({
     password: '',
     confirm: '',
   })
+  const [focusRevision, setFocusRevision] = useState(0)
   const [errors, setErrors] = useState<AccountErrors>({})
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<
@@ -104,6 +105,9 @@ export function AuthPage({
   const isRegister = mode === 'register'
   const busy = pending
   useEffect(() => {
+    if (!busy && focusRevision > 0) focusFirstInvalid(form.current)
+  }, [busy, focusRevision])
+  useEffect(() => {
     if (failure && !busy) submit.current?.focus()
   }, [failure, busy])
   const loginCurrent = mode === 'login' ? 'page' : undefined
@@ -118,6 +122,7 @@ export function AuthPage({
   const statusKey = state === 'expired' ? 'expired' : undefined
   const statusMessage = failure ?? statusKey
   const change = (name: AccountFieldName, value: string) => {
+    setFailure(null)
     setDraft((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: undefined }))
   }
@@ -127,7 +132,7 @@ export function AuthPage({
     const result = schema.safeParse(draft)
     if (!result.success) {
       setErrors(getAccountErrors(result.error.issues))
-      focusFirstInvalid(form.current)
+      setFocusRevision((value) => value + 1)
       return
     }
     setErrors({})
@@ -150,7 +155,7 @@ export function AuthPage({
         if (error.fields?.username === 'usernameTaken')
           fields.username = 'usernameTaken'
         setErrors(fields)
-        focusFirstInvalid(form.current)
+        setFocusRevision((value) => value + 1)
       } else {
         setFailure(
           error instanceof ApiError && error.status === 401

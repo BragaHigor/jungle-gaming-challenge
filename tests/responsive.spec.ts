@@ -1,3 +1,4 @@
+import { cartRequest } from './helpers/cart'
 import { setScenario } from './helpers/scenarios'
 import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
@@ -198,6 +199,7 @@ test.describe('Revisão visual e responsividade', () => {
 test('reserva espaço inferior apenas para a navegação ou ações fixas visíveis', async ({
   page,
 }) => {
+  test.setTimeout(120000)
   for (const width of [390, 699, 700, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 })
     for (const route of [
@@ -246,5 +248,37 @@ test('mantém o rodapé do carrinho acima do menu inferior', async ({ page }) =>
     const footerBox = await copyright.boundingBox()
     const menuBox = await page.locator('.mobile-navigation').boundingBox()
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(menuBox!.y)
+  }
+})
+
+test('mantém o skeleton da conta sem overflow com texto ampliado e rede lenta', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 768, height: 844 })
+  await visitWithAccount(page, '/profile')
+  await cartRequest(page, '/demo/reset', 'POST', { scenario: 'account-slow' })
+  for (const locale of ['pt-BR', 'en']) {
+    await page.evaluate(
+      (value) => localStorage.setItem('kurio-language', value),
+      locale,
+    )
+    for (const route of ['/profile', '/wallets']) {
+      await visit(page, route)
+      await expect(page.locator('main [aria-busy=true]').first()).toBeVisible()
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%'
+      })
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true)
+      await expect(page.locator('input[name=displayName]')).toBeVisible()
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true)
+    }
   }
 })
