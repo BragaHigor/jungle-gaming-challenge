@@ -21,15 +21,15 @@ test('consulta por Axios e recebe atualização de NFT pelo Socket.IO', async ({
 }) => {
   const dialog = await openDemo(page)
   await expect(
-    dialog.getByText('36 NFTs disponíveis', { exact: true }),
+    page.getByText('36 NFTs encontrados', { exact: true }),
   ).toBeVisible()
-  const catalog = dialog.getByRole('region', { name: 'Catálogo', exact: true })
+  const catalog = page.locator('.catalog-grid article').first()
   await expect(catalog.getByText('1.19 ETH', { exact: true })).toBeVisible()
   await dialog
     .getByRole('button', { name: 'Alterar NFT de referência', exact: true })
     .click()
   await expect(catalog.getByText('1.2 ETH', { exact: true })).toBeVisible()
-  await expect(catalog.getByText('Revisão 2', { exact: true })).toBeVisible()
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
   await expect(
     dialog.getByText('Última atualização: Catálogo', { exact: true }),
   ).toBeVisible()
@@ -84,6 +84,11 @@ const selectScenario = async (
     .getByRole('button', { name: 'Aplicar cenário', exact: true })
     .click()
   expect((await applied).ok()).toBe(true)
+  await expect(dialog).not.toBeVisible()
+  await dialog
+    .page()
+    .getByRole('button', { name: 'Demonstração', exact: true })
+    .click()
   await expect(
     dialog.getByRole('combobox', { name: 'Cenário', exact: true }),
   ).toBeEnabled()
@@ -231,19 +236,17 @@ test('recusa resposta malformada e recupera o catálogo após reset', async ({
 }) => {
   const dialog = await openDemo(page)
   await selectScenario(dialog, 'malformed-response')
-  await expect(dialog.getByRole('alert')).toContainText(
+  await expect(page.locator('main [role=alert]')).toContainText(
     'A resposta recebida é inválida.',
   )
-  await expect(
-    dialog.getByRole('region', { name: 'Catálogo', exact: true }),
-  ).toHaveCount(0)
+  await expect(page.locator('.catalog-grid article').first()).toHaveCount(0)
   await dialog
     .getByRole('button', { name: 'Restaurar demonstração', exact: true })
     .click()
   await expect(
-    dialog.getByText('36 NFTs disponíveis', { exact: true }),
+    page.getByText('36 NFTs encontrados', { exact: true }),
   ).toBeVisible()
-  await expect(dialog.getByRole('alert')).toHaveCount(0)
+  await expect(page.locator('main [role=alert]')).toHaveCount(0)
 })
 
 test('descarta evento inválido sem atualizar parcialmente o recurso', async ({
@@ -260,9 +263,9 @@ test('descarta evento inválido sem atualizar parcialmente o recurso', async ({
   await expect(
     dialog.getByText('1 atualização inválida ignorada', { exact: true }),
   ).toBeVisible()
-  const catalog = dialog.getByRole('region', { name: 'Catálogo', exact: true })
+  const catalog = page.locator('.catalog-grid article').first()
   await expect(catalog.getByText('1.19 ETH', { exact: true })).toBeVisible()
-  await expect(catalog.getByText('Revisão 1', { exact: true })).toBeVisible()
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
   expect(
     (await browserRequest(page, '/nfts/emerald-ape-042')).body,
   ).toMatchObject({ price: '1.19', version: 1 })
@@ -287,15 +290,19 @@ test('recupera falhas HTTP, de conexão e timeout pelo controle de cenários', a
     'timeout',
   ]) {
     await selectScenario(dialog, scenario)
-    await expect(dialog.getByRole('alert')).toContainText(
-      'Não foi possível consultar a simulação.',
+    await expect(page.locator('main [role=alert]')).toContainText(
+      'Não foi possível carregar os NFTs.',
+      { timeout: 10000 },
     )
     await dialog
       .getByRole('button', { name: 'Restaurar demonstração', exact: true })
       .click()
     await expect(
-      dialog.getByText('36 NFTs disponíveis', { exact: true }),
+      page.getByText('36 NFTs encontrados', { exact: true }),
     ).toBeVisible()
+    await page
+      .getByRole('button', { name: 'Demonstração', exact: true })
+      .click()
   }
 })
 
@@ -304,11 +311,9 @@ test('mostra carregamento lento e reproduz respostas fora de ordem', async ({
 }) => {
   const dialog = await openDemo(page)
   await selectScenario(dialog, 'slow')
+  await expect(page.locator('.catalog-main [aria-busy=true]')).toBeVisible()
   await expect(
-    dialog.getByLabel('Consultando dados', { exact: true }),
-  ).toBeVisible()
-  await expect(
-    dialog.getByText('36 NFTs disponíveis', { exact: true }),
+    page.getByText('36 NFTs encontrados', { exact: true }),
   ).toBeVisible()
   await selectScenario(dialog, 'variable-latency')
   const completed = await page.evaluate(async () => {
@@ -376,9 +381,7 @@ test('recupera armazenamento corrompido e preserva o idioma escolhido', async ({
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('lang', 'en')
   await page.getByRole('button', { name: 'Demonstration', exact: true }).click()
-  await expect(
-    page.getByRole('dialog').getByText('36 NFTs available', { exact: true }),
-  ).toBeVisible()
+  await expect(page.getByText('36 NFTs found', { exact: true })).toBeVisible()
 })
 
 test('preserva precisão de wei e rejeita valores ETH ambíguos ou numéricos', () => {

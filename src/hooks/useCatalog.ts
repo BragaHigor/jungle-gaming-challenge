@@ -1,100 +1,105 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import {
+  catalogSearchSchema,
+  type CatalogSearch,
+} from '@/schemas/catalog-search'
+import { useCatalogQuery } from './useNftQueries'
 import type {
-  CatalogNft,
   CatalogSort,
   CatalogTab,
   Category,
   Network,
 } from '@/types/catalog'
-import { centiEth, ethToWei } from '@/utils/eth'
+import { centiEth, ethToWei, weiToEth } from '@/utils/eth'
 
-const comparePrices = (first: string, second: string) => {
-  const difference = ethToWei(first) - ethToWei(second)
-  if (difference === 0n) return 0
-  return difference < 0n ? -1 : 1
-}
-
-export function useCatalog(cards: readonly CatalogNft[], initialQuery = '') {
-  const [query, setQuery] = useState(initialQuery)
-  const [selectedCategories, setCategories] = useState<Category[]>([])
-  const [selectedNetworks, setNetworks] = useState<Network[]>([])
-  const [price, setPrice] = useState<[number, number]>([2, 1230])
-  const [appliedPrice, setAppliedPrice] = useState<[number, number]>([2, 1230])
-  const [tab, setTab] = useState<CatalogTab>('all')
-  const [sort, setSort] = useState<CatalogSort>('recent')
-  const [page, setPage] = useState(1)
-  const update = <T>(setter: (value: T) => void, value: T) => {
-    setter(value)
-    setPage(1)
-  }
-  const toggleCategory = (category: Category) =>
-    update(
-      setCategories,
-      selectedCategories.includes(category)
-        ? selectedCategories.filter((value) => value !== category)
-        : [...selectedCategories, category],
-    )
-  const toggleNetwork = (network: Network) =>
-    update(
-      setNetworks,
-      selectedNetworks.includes(network)
-        ? selectedNetworks.filter((value) => value !== network)
-        : [...selectedNetworks, network],
-    )
-  const filtered = cards
-    .filter(
-      (card) =>
-        card.title.toLowerCase().includes(query.trim().toLowerCase()) &&
-        (!selectedCategories.length ||
-          selectedCategories.includes(card.category)) &&
-        (!selectedNetworks.length || selectedNetworks.includes(card.network)) &&
-        (tab !== 'new' || card.isNew) &&
-        (tab !== 'hot' || card.hot) &&
-        ethToWei(card.price) >= ethToWei(centiEth(appliedPrice[0])) &&
-        ethToWei(card.price) <= ethToWei(centiEth(appliedPrice[1])),
-    )
-    .sort((a, b) => {
-      if (sort === 'recent') return 0
-      if (sort === 'name') return a.title.localeCompare(b.title)
-      const direction = sort === 'highest' ? -1 : 1
-      return comparePrices(a.price, b.price) * direction
+export function useCatalog() {
+  const search = catalogSearchSchema.parse(useSearch({ strict: false }))
+  const navigate = useNavigate()
+  const result = useCatalogQuery(search)
+  const page = search.page ?? 1
+  const pageCount = Math.max(1, Math.ceil((result.data?.total ?? 0) / 9))
+  useEffect(() => {
+    if (!result.isSuccess || page <= pageCount) return
+    void navigate({
+      to: '/',
+      search: (previous: CatalogSearch) => ({ ...previous, page: pageCount }),
+      replace: true,
+      resetScroll: false,
     })
-  const pageCount = Math.max(1, Math.ceil(filtered.length / 9))
-  const currentPage = Math.min(page, pageCount)
+  }, [navigate, page, pageCount, result.isSuccess])
+  const appliedPrice: [number, number] = [
+    Math.round(Number(search.min ?? '0.02') * 100),
+    Math.round(Number(search.max ?? '12.3') * 100),
+  ]
+  const priceKey = `${search.min}:${search.max}`
+  const [draft, setDraft] = useState<{
+    key: string
+    value: [number, number]
+  } | null>(null)
+  const price = draft?.key === priceKey ? draft.value : appliedPrice
+  const update = (patch: Partial<CatalogSearch>) => {
+    void navigate({
+      to: '/',
+      search: (previous: CatalogSearch) => ({
+        ...previous,
+        page: undefined,
+        ...patch,
+      }),
+      resetScroll: false,
+    })
+  }
+  const selectedCategories = search.categories ?? []
+  const selectedNetworks = search.networks ?? []
+  const toggleCategory = (category: Category) =>
+    update({
+      categories: selectedCategories.includes(category)
+        ? selectedCategories.filter((value) => value !== category)
+        : [...selectedCategories, category].sort(),
+    })
+  const toggleNetwork = (network: Network) =>
+    update({
+      networks: selectedNetworks.includes(network)
+        ? selectedNetworks.filter((value) => value !== network)
+        : [...selectedNetworks, network].sort(),
+    })
   const reset = () => {
-    setQuery('')
-    setCategories([])
-    setNetworks([])
-    setPrice([2, 1230])
-    setAppliedPrice([2, 1230])
-    setTab('all')
-    setSort('recent')
-    setPage(1)
+    setDraft(null)
+    void navigate({ to: '/', search: {}, resetScroll: false })
   }
   return {
-    query,
-    setQuery: (value: string) => update(setQuery, value),
+    result,
+    query: search.q ?? '',
+    setQuery: (q: string) => update({ q: q || undefined }),
     selectedCategories,
     selectedNetworks,
     toggleCategory,
     toggleNetwork,
     price,
-    setPrice,
-    applyPrice: () => update(setAppliedPrice, price),
-    tab,
-    setTab: (value: CatalogTab) => update(setTab, value),
-    sort,
-    setSort: (value: CatalogSort) => update(setSort, value),
-    page: currentPage,
-    setPage,
+    setPrice: (value: [number, number]) => setDraft({ key: priceKey, value }),
+    applyPrice: () =>
+      update({
+        min: weiToEth(ethToWei(centiEth(price[0]))),
+        max: weiToEth(ethToWei(centiEth(price[1]))),
+      }),
+    tab: search.tab ?? 'all',
+    setTab: (tab: CatalogTab) => update({ tab }),
+    sort: search.sort ?? 'recent',
+    setSort: (sort: CatalogSort) => update({ sort }),
+    page,
+    setPage: (page: number) => update({ page }),
     pageCount,
-    total: filtered.length,
-    visible: filtered.slice((currentPage - 1) * 9, currentPage * 9),
+    total: result.data?.total ?? 0,
+    visible: result.data?.items ?? [],
+    facets: result.data?.facets,
     reset,
-    explore: (nextTab: CatalogTab, category?: Category) => {
-      reset()
-      setTab(nextTab)
-      setCategories(category ? [category] : [])
+    explore: (tab: CatalogTab, category?: Category) => {
+      setDraft(null)
+      void navigate({
+        to: '/',
+        search: { tab, categories: category ? [category] : undefined },
+        hash: 'marketplace',
+      })
     },
   }
 }

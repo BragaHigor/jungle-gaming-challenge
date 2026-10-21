@@ -74,18 +74,18 @@ test('consulta REST e atualiza o NFT pelo Socket.IO no endereço publicado', asy
     exact: true,
   })
   await expect(
-    dialog.getByText('36 NFTs disponíveis', { exact: true }),
+    page.getByText('36 NFTs encontrados', { exact: true }),
   ).toBeVisible()
   await expect(
     dialog.getByText('Tempo real conectado', { exact: true }),
   ).toBeVisible()
-  const catalog = dialog.getByRole('region', { name: 'Catálogo', exact: true })
+  const catalog = page.locator('.catalog-grid article').first()
   await expect(catalog.getByText('1.19 ETH', { exact: true })).toBeVisible()
   await dialog
     .getByRole('button', { name: 'Alterar NFT de referência', exact: true })
     .click()
   await expect(catalog.getByText('1.2 ETH', { exact: true })).toBeVisible()
-  await expect(catalog.getByText('Revisão 2', { exact: true })).toBeVisible()
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
   await page.reload()
   await page
     .getByRole('contentinfo')
@@ -109,10 +109,7 @@ test('mantém a tradução em inglês após atualizar a página publicada', asyn
     .getByRole('contentinfo')
     .getByRole('button', { name: 'Demonstration', exact: true })
     .click()
-  const dialog = page.getByRole('dialog')
-  await expect(
-    dialog.getByText('36 NFTs available', { exact: true }),
-  ).toBeVisible()
+  await expect(page.getByText('36 NFTs found', { exact: true })).toBeVisible()
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,

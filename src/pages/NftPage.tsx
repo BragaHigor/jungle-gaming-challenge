@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import type { CatalogNft, ViewState } from '@/types/catalog'
+import type { Nft } from '@/schemas/api/catalog'
 import { NftGallery } from '@/components/nft/NftGallery'
 import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { CatalogState } from '@/components/catalog/CatalogState'
@@ -13,29 +14,20 @@ import { NftPageSkeleton } from '@/components/nft/NftPageSkeleton'
 import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Icon } from '@/components/ui/Icon'
 import { Button } from '@/components/ui/button'
-
-const editions = [
-  { key: '1/1', max: 1 },
-  { key: '1/10', max: 10 },
-  { key: '1/50', max: 50 },
-  { key: 'open', max: 99 },
-] as const
 const tabKeys = ['description', 'reviews'] as const
-
 const getNextTabIndex = (key: string, currentIndex: number) => {
   const edgeIndexes = { Home: 0, End: tabKeys.length - 1 }
   if (key === 'Home' || key === 'End') return edgeIndexes[key]
   const direction = key === 'ArrowRight' ? 1 : -1
   return (currentIndex + direction + tabKeys.length) % tabKeys.length
 }
-
 export function NftPage({
   nft,
   related,
   state = 'ready',
   onRetry,
 }: {
-  nft?: CatalogNft
+  nft?: Nft
   related: readonly CatalogNft[]
   state?: ViewState
   onRetry: () => void
@@ -47,24 +39,30 @@ export function NftPage({
   const [relatedIndex, setRelatedIndex] = useState(0)
   const relatedTrack = useRef<HTMLDivElement>(null)
   const tabs = useRef<(HTMLButtonElement | null)[]>([])
-  if (state !== 'ready' || !nft) {
-    const unavailableState = nft && state !== 'ready' ? state : 'unavailable'
-    const content =
-      nft && state === 'loading' ? (
-        <NftPageSkeleton />
-      ) : (
-        <CatalogState state={unavailableState} titleAs="h1" onReset={onRetry} />
-      )
+  if (state === 'loading')
     return (
       <>
         <NftMobileHeader />
-        {content}
+        <NftPageSkeleton />
       </>
     )
-  }
-  const selectedEdition = editions[edition]
+  if (state !== 'ready' || !nft)
+    return (
+      <>
+        <NftMobileHeader />
+        <CatalogState
+          state={state === 'ready' ? 'unavailable' : state}
+          titleAs="h1"
+          onReset={onRetry}
+        />
+      </>
+    )
+  const editions = nft.editions
+  const selectedEdition = editions[edition] ?? editions[0]
+  const maximum = Math.min(selectedEdition.available, selectedEdition.limit)
+  const selectedQuantity = Math.min(quantity, maximum)
   const editionLabel =
-    selectedEdition.key === 'open' ? t('detail:open') : selectedEdition.key
+    selectedEdition.id === 'open' ? t('detail:open') : selectedEdition.id
   const metadata = (
     <dl className="nft-metadata flex flex-col gap-3 pt-5 border-t border-t-border text-secondary max-tablet:mt-5 max-tablet:pt-0 max-tablet:border-0 max-tablet:gap-3 max-tablet:text-[13px] tablet:pt-0 tablet:border-0">
       <div className="flex flex-wrap gap-2">
@@ -87,15 +85,15 @@ export function NftPage({
     <>
       <div className="purchase-summary max-tablet:flex max-tablet:justify-between max-tablet:items-center">
         <QuantityStepper
-          value={quantity}
-          max={editions[edition].max}
+          value={selectedQuantity}
+          max={maximum}
           onChange={setQuantity}
         />
         <p
           className="mobile-price hidden max-tablet:block max-tablet:text-[24px] max-tablet:text-primary-hover max-tablet:font-bold"
           aria-live="polite"
         >
-          {weiToEth(ethToWei(nft.price) * BigInt(quantity))}{' '}
+          {weiToEth(ethToWei(nft.price) * BigInt(selectedQuantity))}{' '}
           <span className="max-tablet:text-[14px] max-tablet:font-normal">
             ETH
           </span>
@@ -103,16 +101,21 @@ export function NftPage({
       </div>
       <div className="purchase-actions flex min-w-0 gap-3 items-center flex-1 tablet:flex-[0_1_auto]">
         <Button
-          asChild
+          asChild={maximum > 0}
+          disabled={maximum === 0}
           className="nft-buy flex-1 tracking-[0.05em] tablet:min-w-32.5"
         >
-          <Link to="/cart">
-            {t('detail:buy')}
-            <span className="mobile-buy-nft hidden max-tablet:inline">
-              {' '}
-              NFT
-            </span>
-          </Link>
+          {maximum === 0 ? (
+            t('detail:soldOut')
+          ) : (
+            <Link to="/cart">
+              {t('detail:buy')}
+              <span className="mobile-buy-nft hidden max-tablet:inline">
+                {' '}
+                NFT
+              </span>
+            </Link>
+          )}
         </Button>
         <UnavailableAction
           className="nft-add-cart border border-input text-primary-hover shrink-0 icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55"
@@ -213,18 +216,26 @@ export function NftPage({
                 <button
                   className="min-w-16 min-h-11 pt-1.5 pr-3 pb-1.5 pl-3 border border-input rounded text-secondary [&[aria-pressed='true']]:border-primary [&[aria-pressed='true']]:bg-primary [&[aria-pressed='true']]:text-background max-tablet:min-h-9 max-tablet:min-w-14 max-tablet:pt-1 max-tablet:pr-2 max-tablet:pb-1 max-tablet:pl-2 max-tablet:text-[12px] tablet:relative tablet:border-0 tablet:rounded-3xl tablet:min-w-10 tablet:pt-1 tablet:pr-2 tablet:pb-1 tablet:pl-2 tablet:bg-transparent tablet:text-[12px] tablet:before:absolute tablet:before:content-[''] tablet:before:[inset:10px_0] tablet:before:border tablet:before:border-input tablet:before:rounded-[20px] tablet:[&[aria-pressed='true']]:text-primary-hover tablet:[&[aria-pressed='true']]:bg-transparent"
                   type="button"
-                  key={item.key}
-                  aria-pressed={edition === index}
+                  key={item.id}
+                  aria-pressed={selectedEdition.id === item.id}
                   onClick={() => {
                     setEdition(index)
-                    setQuantity((value) => Math.min(value, item.max))
+                    setQuantity((value) =>
+                      Math.max(1, Math.min(value, item.available, item.limit)),
+                    )
                   }}
                 >
-                  {item.key === 'open' ? t('detail:open') : item.key}
+                  {item.id === 'open' ? t('detail:open') : item.id}
+                  {item.available === 0 && (
+                    <span className="sr-only"> — {t('detail:soldOut')}</span>
+                  )}
                 </button>
               ))}
             </div>
           </fieldset>
+          <p className="mt-2 text-xs text-secondary" role="status">
+            {t('detail:availability', { count: maximum })}
+          </p>
           <div className="desktop-purchase flex items-center gap-4 mt-6 mr-0 mb-6 ml-0 [&_.nft-add-cart]:hidden max-wide:tablet:max-w-125 max-tablet:hidden tablet:mt-2 tablet:mr-0 tablet:mb-4 tablet:ml-0 tablet:justify-between tablet:[&_.nft-favorite]:flex tablet:[&_.nft-favorite]:w-auto tablet:[&_.nft-favorite]:pl-3 tablet:[&_.nft-favorite]:pr-3 tablet:[&_.nft-favorite]:gap-2 tablet:[&_.nft-favorite]:text-[13px]">
             {purchaseControls}
           </div>

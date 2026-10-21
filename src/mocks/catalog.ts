@@ -1,3 +1,4 @@
+import { categories, networks } from '@/constants/catalog'
 import { catalogQuerySchema, type Nft } from '@/schemas/api/catalog'
 import { ethToWei } from '@/utils/eth'
 import { parseInput } from './responses'
@@ -54,6 +55,20 @@ export function listNfts(url: URL) {
     })
     .sort(comparators[query.sort])
   return {
+    facets: {
+      categories: Object.fromEntries(
+        categories.map((category) => [
+          category,
+          database.nfts.filter((nft) => nft.category === category).length,
+        ]),
+      ),
+      networks: Object.fromEntries(
+        networks.map((network) => [
+          network,
+          database.nfts.filter((nft) => nft.network === network).length,
+        ]),
+      ),
+    },
     items: matches.slice(
       (query.page - 1) * query.pageSize,
       query.page * query.pageSize,

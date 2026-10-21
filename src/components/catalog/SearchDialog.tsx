@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useSearch } from '@tanstack/react-router'
+import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { useTranslation } from 'react-i18next'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -10,8 +11,15 @@ export function SearchDialog() {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const navigate = useNavigate()
+  const search = catalogSearchSchema.parse(useSearch({ strict: false }))
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(value) => {
+        if (value) setQuery(search.q ?? '')
+        setOpen(value)
+      }}
+    >
       <DialogTrigger asChild>
         <button
           type="button"
@@ -32,7 +40,7 @@ export function SearchDialog() {
             setOpen(false)
             void navigate({
               to: '/',
-              search: { q: query },
+              search: { ...search, q: query || undefined, page: undefined },
               hash: 'marketplace',
             })
           }}

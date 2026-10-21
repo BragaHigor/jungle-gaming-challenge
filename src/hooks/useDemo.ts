@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { getCatalog } from '@/api/catalog'
 import {
   emitDemoEvent,
   getDemoOrder,
@@ -10,7 +9,7 @@ import {
 import { subscribeToEvents } from '@/services/realtime'
 import type { ResourceEvent } from '@/schemas/api/events'
 
-export function useDemo() {
+export function useDemoController() {
   const cache = useQueryClient()
   const status = useQuery({
     queryKey: ['demo', 'status'],
@@ -22,12 +21,6 @@ export function useDemo() {
   const token = status.data?.session?.token
   const userId = status.data?.session?.user.id
   const orderId = status.data?.pendingOrderId
-  const catalog = useQuery({
-    queryKey: ['demo', 'catalog', generation],
-    queryFn: ({ signal }) => getCatalog({}, signal),
-    enabled: Boolean(generation),
-    retry: false,
-  })
   const order = useQuery({
     queryKey: ['demo', 'order', generation, userId, orderId],
     queryFn: ({ signal }) => getDemoOrder(orderId!, token!, signal),
@@ -55,9 +48,7 @@ export function useDemo() {
       onConnection: (online) => {
         setConnection({ generation, online })
         if (online) {
-          void cache.invalidateQueries({
-            queryKey: ['demo', 'catalog', generation],
-          })
+          void cache.invalidateQueries({ queryKey: ['nfts'] })
           void cache.invalidateQueries({
             queryKey: ['demo', 'order', generation, userId],
           })
@@ -65,10 +56,12 @@ export function useDemo() {
       },
       onEvent: (event) => {
         setLastEvent({ generation, type: event.type })
-        const resource = event.type === 'nft.updated' ? 'catalog' : 'order'
-        void cache.invalidateQueries({
-          queryKey: ['demo', resource, generation],
-        })
+        if (event.type === 'nft.updated')
+          void cache.invalidateQueries({ queryKey: ['nfts'] })
+        else
+          void cache.invalidateQueries({
+            queryKey: ['demo', 'order', generation],
+          })
       },
       onInvalid: () =>
         setInvalid((current) => ({
@@ -80,17 +73,16 @@ export function useDemo() {
   const reset = useMutation({
     mutationFn: resetDemo,
     onSuccess: async (data) => {
-      await cache.cancelQueries({ queryKey: ['demo', 'catalog'] })
+      await cache.cancelQueries({ queryKey: ['nfts'] })
       await cache.cancelQueries({ queryKey: ['demo', 'order'] })
-      cache.removeQueries({ queryKey: ['demo', 'catalog'] })
       cache.removeQueries({ queryKey: ['demo', 'order'] })
       cache.setQueryData(['demo', 'status'], data)
+      void cache.resetQueries({ queryKey: ['nfts'] })
     },
   })
   const emit = useMutation({ mutationFn: emitDemoEvent })
   return {
     status,
-    catalog,
     order,
     reset,
     emit,
@@ -102,4 +94,13 @@ export function useDemo() {
     invalidEvents:
       invalid && invalid.generation === generation ? invalid.count : 0,
   }
+}
+
+export const DemoContext = createContext<ReturnType<
+  typeof useDemoController
+> | null>(null)
+export function useDemo() {
+  const demo = useContext(DemoContext)
+  if (!demo) throw new Error('DemoProvider is required')
+  return demo
 }

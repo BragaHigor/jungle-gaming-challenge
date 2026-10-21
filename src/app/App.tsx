@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { DemoProvider } from './DemoProvider'
 import { Outlet, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { Header } from '@/components/layout/Header'
@@ -29,7 +30,7 @@ const getPageClass = (pathname: string) => {
   return mobileNavigationSpace
 }
 
-export function App() {
+function AppContent() {
   const { t } = useTranslation()
   const { pathname } = useLocation()
   const pageClass = getPageClass(pathname)
@@ -62,5 +63,13 @@ export function App() {
       <Footer />
       <MobileNavigation />
     </div>
+  )
+}
+
+export function App() {
+  return (
+    <DemoProvider>
+      <AppContent />
+    </DemoProvider>
   )
 }

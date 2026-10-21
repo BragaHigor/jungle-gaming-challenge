@@ -158,7 +158,11 @@
     "creatorsText": "Entenda raridade, procedência, direitos autorais e utilidade.",
     "securityTitle": "Como proteger sua carteira",
     "securityText": "Proteja sua carteira, seus ativos e sua identidade.",
-    "readMore": "Ler mais"
+    "readMore": "Ler mais",
+    "refreshing": "Atualizando NFTs…",
+    "refreshError": "Não foi possível atualizar. Os últimos dados recebidos continuam visíveis.",
+    "requestError": "Não foi possível carregar os NFTs. Tente novamente.",
+    "contractError": "A resposta recebida é inválida. Restaure a demonstração para tentar novamente."
   },
   "detail": {
     "quantity": "Quantidade",
@@ -208,7 +212,10 @@
     "sageAlt": "Chapéu, Lilás, Comum",
     "neonAlt": "Óculos, Marfim, Raro",
     "goldenAlt": "Fones, Dourado, Comum",
-    "loading": "Carregando NFT…"
+    "loading": "Carregando NFT…",
+    "soldOut": "Edição esgotada",
+    "availability_one": "{{count}} unidade disponível nesta edição",
+    "availability_other": "{{count}} unidades disponíveis nesta edição"
   },
   "purchase": {
     "cartTitle": "Carrinho de NFTs",
@@ -407,6 +414,20 @@
     "scenario_malformed-response": "Resposta inválida",
     "scenario_malformed-event": "Atualização inválida",
     "scenario_pending-order": "Pedido pendente (conta fictícia)",
-    "notice": "Os dados são fictícios. Aplicar um cenário restaura o estado da simulação; sua preferência de idioma é preservada."
+    "notice": "Os dados são fictícios. Aplicar um cenário restaura o estado da simulação; sua preferência de idioma é preservada.",
+    "scenario_sold-out": "Edição esgotada",
+    "effect_default": "Restaura os dados e o funcionamento padrão.",
+    "effect_empty": "Mostra o catálogo sem resultados.",
+    "effect_sold-out": "Esgota a edição 1/50 do Emerald Ape.",
+    "effect_slow": "Atrasa as consultas para mostrar o carregamento.",
+    "effect_variable-latency": "Responde a buscas em tempos diferentes; a última busca deve prevalecer.",
+    "effect_offline": "Simula falha de rede nas consultas.",
+    "effect_timeout": "Atrasa a resposta além do tempo limite da consulta.",
+    "effect_server-error": "Retorna erro temporário do serviço.",
+    "effect_unauthorized": "Retorna acesso não autorizado nas consultas.",
+    "effect_forbidden": "Retorna acesso sem permissão nas consultas.",
+    "effect_malformed-response": "Retorna dados inválidos para validar o tratamento de contrato.",
+    "effect_malformed-event": "Envia um evento inválido que deve ser ignorado.",
+    "effect_pending-order": "Prepara um pedido pendente de uma conta fictícia, sem confirmar pagamento."
   }
 }
