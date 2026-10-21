@@ -1,4 +1,6 @@
 import { useEffect } from 'react'
+import { SessionProvider } from './SessionProvider'
+import { FavoritesProvider } from './FavoritesProvider'
 import { DemoProvider } from './DemoProvider'
 import { Outlet, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -68,8 +70,12 @@ function AppContent() {
 
 export function App() {
   return (
-    <DemoProvider>
-      <AppContent />
-    </DemoProvider>
+    <SessionProvider>
+      <FavoritesProvider>
+        <DemoProvider>
+          <AppContent />
+        </DemoProvider>
+      </FavoritesProvider>
+    </SessionProvider>
   )
 }

@@ -37,7 +37,9 @@
     "account": "Minha conta",
     "favorites": "Favoritos",
     "scan": "Escanear",
-    "wallets": "Carteiras"
+    "wallets": "Carteiras",
+    "signOut": "Sair",
+    "profile": "Perfil"
   },
   "card": {
     "rare": "RARO",
@@ -47,7 +49,12 @@
     "emeraldAlt": "Macaco com óculos redondos e jaqueta verde",
     "sageAlt": "Macaco de chapéu verde e moletom lilás",
     "neonAlt": "Macaco de óculos escuros e paletó claro",
-    "goldenAlt": "Macaco dourado com fones de ouvido verdes"
+    "goldenAlt": "Macaco dourado com fones de ouvido verdes",
+    "favoriteError": "Não foi possível atualizar os favoritos. Tente novamente.",
+    "favoritesEmpty": "Você ainda não tem favoritos.",
+    "favoritesLoading": "Carregando favoritos…",
+    "favoritesLoadError": "Não foi possível carregar seus favoritos.",
+    "retry": "Tentar novamente"
   },
   "footer": {
     "walletSecurity": "Segurança da carteira",
@@ -59,7 +66,7 @@
     "newsletter": "Antecipe-se ao próximo lançamento",
     "newsletterText": "Receba lançamentos selecionados, histórias de criadores e novidades do mercado.",
     "email": "E-mail para novidades",
-    "emailPlaceholder": "digite seu e-mail...",
+    "emailPlaceholder": "ex: colecionador@kurio.demo",
     "send": "Enviar",
     "invalidEmail": "Informe um e-mail válido.",
     "newsletterUnavailable": "O envio de novidades está indisponível.",
@@ -96,7 +103,7 @@
     "highlights": "Destaques",
     "heroSlides": "Destaques do marketplace",
     "slide": "Mostrar destaque {{number}}",
-    "searchPlaceholder": "Explorar coleções",
+    "searchPlaceholder": "ex: Emerald Ape",
     "searchHelp": "Encontre uma obra pelo nome no catálogo.",
     "search": "Buscar",
     "filters": "Filtros",
@@ -226,7 +233,7 @@
     "market": "Mercado",
     "summary": "Resumo da carteira",
     "coupon": "Código promocional",
-    "couponPlaceholder": "Digite seu código promocional",
+    "couponPlaceholder": "ex: KURIO10",
     "apply": "Aplicar",
     "couponRequired": "Informe um código promocional.",
     "couponUnavailable": "A aplicação de cupons está indisponível no momento. Nenhum desconto foi aplicado.",
@@ -375,7 +382,11 @@
     "expired": "Sua sessão expirou",
     "signedOut": "Entre para continuar",
     "signInToContinue": "Acesse sua conta para gerenciar seus dados e carteiras.",
-    "createProfile": "Criar perfil"
+    "createProfile": "Criar perfil",
+    "invalidCredentials": "E-mail ou senha incorretos.",
+    "emailTaken": "Este e-mail já está cadastrado.",
+    "usernameTaken": "Este nome de usuário já está em uso.",
+    "sessionError": "Não foi possível recuperar sua sessão. Tente novamente."
   },
   "demo": {
     "open": "Demonstração",
@@ -428,6 +439,32 @@
     "effect_forbidden": "Retorna acesso sem permissão nas consultas.",
     "effect_malformed-response": "Retorna dados inválidos para validar o tratamento de contrato.",
     "effect_malformed-event": "Envia um evento inválido que deve ser ignorado.",
-    "effect_pending-order": "Prepara um pedido pendente de uma conta fictícia, sem confirmar pagamento."
+    "effect_pending-order": "Restaura os dados e prepara um pedido pendente. Entre com a conta colecionador para consultar, sem confirmar pagamento.",
+    "scenario_session-expired": "Sessão expirada",
+    "effect_session-expired": "Expira somente sua sessão atual e abre o login com retorno à página atual.",
+    "scenario_favorites-failure": "Falha nos favoritos",
+    "effect_favorites-failure": "Falha ao salvar favoritos para seu usuário. O coração muda imediatamente e volta após a falha.",
+    "scenario_favorites-ready": "Restaurar favoritos",
+    "effect_favorites-ready": "Restaura o salvamento de favoritos sem apagar dados ou sair da conta."
+  },
+  "examples": {
+    "displayName": "ex: Alex Silva",
+    "username": "ex: alexsilva",
+    "email": "ex: colecionador@kurio.demo",
+    "password": "ex: Kurio@2026",
+    "confirm": "ex: Kurio@2026",
+    "currentPassword": "ex: Kurio@2026",
+    "newPassword": "ex: NovaSenha2026",
+    "confirmPassword": "ex: NovaSenha2026",
+    "ens": "ex: alexsilva.eth",
+    "walletNickname": "ex: Minha carteira",
+    "profileName": "ex: Coleção do Alex",
+    "address": "ex: 0x1111111111111111111111111111111111111111",
+    "solanaAddress": "ex: 11111111111111111111111111111111",
+    "secondary": "ex: alexsilva.eth",
+    "referral": "ex: KURIO",
+    "note": "ex: Presente para minha coleção",
+    "network": "ex: Ethereum",
+    "walletType": "ex: MetaMask"
   }
 }

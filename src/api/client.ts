@@ -22,6 +22,14 @@ client.interceptors.response.use(
   (error: unknown) => {
     if (!axios.isAxiosError(error)) return Promise.reject(error)
     if (axios.isCancel(error)) return Promise.reject(error)
+    const sentToken = error.config?.headers?.Authorization?.toString().replace(
+      /^Bearer /,
+      '',
+    )
+    if (error.response?.status === 401 && sentToken)
+      window.dispatchEvent(
+        new CustomEvent('kurio:unauthorized', { detail: sentToken }),
+      )
     const payload = apiErrorSchema.safeParse(error.response?.data)
     if (payload.success)
       return Promise.reject(

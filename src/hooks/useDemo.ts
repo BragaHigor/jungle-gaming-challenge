@@ -1,3 +1,4 @@
+import { useSession } from './useSession'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -11,15 +12,16 @@ import type { ResourceEvent } from '@/schemas/api/events'
 
 export function useDemoController() {
   const cache = useQueryClient()
+  const { session } = useSession()
   const status = useQuery({
-    queryKey: ['demo', 'status'],
+    queryKey: ['private', session?.user.id, session?.token, 'demo-status'],
     queryFn: ({ signal }) => getDemoStatus(signal),
     staleTime: Infinity,
     retry: false,
   })
   const generation = status.data?.generation
-  const token = status.data?.session?.token
-  const userId = status.data?.session?.user.id
+  const token = session?.token
+  const userId = session?.user.id
   const orderId = status.data?.pendingOrderId
   const order = useQuery({
     queryKey: ['demo', 'order', generation, userId, orderId],
@@ -76,8 +78,13 @@ export function useDemoController() {
       await cache.cancelQueries({ queryKey: ['nfts'] })
       await cache.cancelQueries({ queryKey: ['demo', 'order'] })
       cache.removeQueries({ queryKey: ['demo', 'order'] })
-      cache.setQueryData(['demo', 'status'], data)
+      cache.setQueryData(
+        ['private', session?.user.id, session?.token, 'demo-status'],
+        data,
+      )
       void cache.resetQueries({ queryKey: ['nfts'] })
+      void cache.invalidateQueries({ queryKey: ['session'] })
+      void cache.invalidateQueries({ queryKey: ['private'] })
     },
   })
   const emit = useMutation({ mutationFn: emitDemoEvent })

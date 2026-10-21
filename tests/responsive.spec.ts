@@ -1,4 +1,5 @@
 import { setScenario } from './helpers/scenarios'
+import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
@@ -147,7 +148,7 @@ test.describe('Revisão visual e responsividade', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
-    await visit(page, '/wallets')
+    await visitWithAccount(page, '/wallets')
     await page
       .getByRole('navigation', { name: 'Navegação mobile', exact: true })
       .getByRole('link', { name: 'Minha conta', exact: true })
@@ -210,7 +211,7 @@ test('reserva espaço inferior apenas para a navegação ou ações fixas visív
       '/wallets',
       '/nfts/emerald-ape-042',
     ]) {
-      await visit(page, route)
+      await visitWithAccount(page, route)
       const navigation = page.locator('.mobile-navigation')
       const showsNavigation =
         width < 700 && ['/', '/cart', '/profile', '/wallets'].includes(route)

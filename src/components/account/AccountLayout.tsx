@@ -1,3 +1,6 @@
+import { FavoritesDialog } from './FavoritesDialog'
+import { useSession } from '@/hooks/useSession'
+import { DemoControls } from '@/components/demo/DemoControls'
 import type { ReactNode } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -6,7 +9,6 @@ import { Icon } from '@/components/ui/Icon'
 
 const auxiliaryLinks = [
   { key: 'activity', icon: 'cart' },
-  { key: 'wishlist', icon: 'heart' },
   { key: 'offers', icon: 'scan' },
   { key: 'downloads', icon: 'down' },
   { key: 'support', icon: 'user' },
@@ -22,6 +24,7 @@ export function AccountLayout({
   children: ReactNode
 }) {
   const { t } = useTranslation('account')
+  const { endSession } = useSession()
   const activeProfile = page === 'profile' ? 'page' : undefined
   const activeWallets = page === 'wallets' ? 'page' : undefined
   return (
@@ -48,19 +51,26 @@ export function AccountLayout({
             <Icon name="scan" className="size-5 shrink-0" />
             {t('walletsTitle')}
           </Link>
+          <FavoritesDialog label={t('wishlist')} className={linkClass}>
+            <Icon name="heart" className="size-5 shrink-0" />
+            {t('wishlist')}
+          </FavoritesDialog>
           {auxiliaryLinks.map((link) => (
             <UnavailableAction key={link.key} className={linkClass}>
               <Icon name={link.icon} className="size-5 shrink-0" />
               {t(link.key)}
             </UnavailableAction>
           ))}
-          <UnavailableAction
+          <button
+            type="button"
+            onClick={() => void endSession()}
             className={`${linkClass} border-t border-t-border font-bold`}
           >
             <Icon name="login" className="size-5 shrink-0" />
             {t('logout')}
-          </UnavailableAction>
+          </button>
         </nav>
+        <DemoControls />
       </aside>
       <div className="min-w-0">{children}</div>
     </div>

@@ -1,3 +1,4 @@
+import { signInFixture } from './helpers/auth'
 import { readMockStorage, corruptMockStorage } from './helpers/storage'
 import { visit } from './helpers/navigation'
 import { expect, test, type Page } from '@playwright/test'
@@ -209,8 +210,13 @@ test('isola pedido, perfil, carteiras e sessão das duas contas fictícias', asy
 test('recebe order.updated e mantém o pedido pendente sem inventar confirmação', async ({
   page,
 }) => {
+  await visit(page, '/')
+  await browserRequest(page, '/demo/reset', {
+    method: 'POST',
+    body: { scenario: 'pending-order' },
+  })
+  await signInFixture(page)
   const dialog = await openDemo(page)
-  await selectScenario(dialog, 'pending-order')
   const order = dialog.getByRole('region', { name: 'Pedido', exact: true })
   await expect(order.getByText('Revisão 1', { exact: true })).toBeVisible()
   await expect(

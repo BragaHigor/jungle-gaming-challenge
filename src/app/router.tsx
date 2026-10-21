@@ -2,7 +2,9 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
 } from '@tanstack/react-router'
+import { SessionError } from '@/components/account/SessionError'
 import { App } from './App'
 import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
@@ -16,11 +18,27 @@ import {
   ProfileRoute,
   WalletsRoute,
 } from './AccountRoutes'
-import { accountSearchSchema } from '@/schemas/account'
+import { queryClient } from './query-client'
+import { sessionOptions, safeReturn, readToken } from '@/services/session'
+import { accountSearchSchema, authSearchSchema } from '@/schemas/account'
 import { parseSearch, stringifySearch } from '@/utils/search'
+
+const requireAccount = async ({ location }: { location: { href: string } }) => {
+  const hadToken = Boolean(readToken())
+  const session = await queryClient.fetchQuery(sessionOptions())
+  if (!session)
+    throw redirect({
+      to: '/login',
+      search: {
+        redirect: safeReturn(location.href),
+        reason: hadToken ? 'expired' : undefined,
+      },
+    })
+}
 
 const rootRoute = createRootRoute({
   component: App,
+  errorComponent: SessionError,
   notFoundComponent: NotFoundPage,
 })
 const homeRoute = createRoute({
@@ -53,34 +71,38 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/checkout',
+      beforeLoad: requireAccount,
       component: CheckoutRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/confirmation',
+      beforeLoad: requireAccount,
       component: ConfirmationPage,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/login',
-      validateSearch: (search) => accountSearchSchema.parse(search),
+      validateSearch: (search) => authSearchSchema.parse(search),
       component: LoginRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/register',
-      validateSearch: (search) => accountSearchSchema.parse(search),
+      validateSearch: (search) => authSearchSchema.parse(search),
       component: RegistrationRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/profile',
+      beforeLoad: requireAccount,
       validateSearch: (search) => accountSearchSchema.parse(search),
       component: ProfileRoute,
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/wallets',
+      beforeLoad: requireAccount,
       validateSearch: (search) => accountSearchSchema.parse(search),
       component: WalletsRoute,
     }),
