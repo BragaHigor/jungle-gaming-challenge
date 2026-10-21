@@ -20,8 +20,8 @@ export function AccountState({
         className="mt-8 grid gap-7 tablet:grid-cols-2"
       >
         {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className="space-y-3">
-            <Skeleton className="h-5 w-32" />
+          <div key={index} className="min-w-0 space-y-3">
+            <Skeleton className="h-5 w-32 max-w-full" />
             <Skeleton className="h-11 w-full" />
           </div>
         ))}

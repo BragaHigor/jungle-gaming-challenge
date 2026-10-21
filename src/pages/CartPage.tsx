@@ -134,8 +134,10 @@ export function CartPage({ related }: { related: readonly CatalogNft[] }) {
             )}
             {!quote.expired && (
               <p
-                className={`mt-3 text-xs text-secondary ${quote.query.data ? '' : 'invisible'}`}
-                aria-hidden={!quote.query.data}
+                className={`mt-3 text-xs text-secondary ${quote.query.data && !quote.query.isError && !needsReview ? '' : 'invisible'}`}
+                aria-hidden={
+                  !quote.query.data || quote.query.isError || needsReview
+                }
               >
                 {t('quoteValidity')}
               </p>

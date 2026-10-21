@@ -10,6 +10,9 @@ export const accountErrorCodes = [
   'passwordInvalid',
   'passwordMismatch',
   'passwordUnchanged',
+  'currentPasswordInvalid',
+  'primaryRequired',
+  'walletDuplicate',
   'ensInvalid',
   'addressInvalid',
   'secondaryInvalid',
@@ -127,19 +130,12 @@ export const avatarSchema = z.object({
     .positive('avatarSize')
     .max(2 * 1024 * 1024, 'avatarSize'),
 })
-export const accountSearchSchema = z.object({
-  view: z
-    .enum(['ready', 'loading', 'error', 'signedOut', 'expired'])
-    .catch('ready')
-    .optional(),
-})
 export type LoginDraft = z.infer<typeof loginSchema>
 export type RegistrationDraft = z.infer<typeof registrationSchema>
 export type ProfileDraft = z.infer<typeof profileSchema>
 export type WalletDraft = z.infer<typeof walletSchema>
-export type AccountViewState = NonNullable<
-  z.infer<typeof accountSearchSchema>['view']
->
+export type AccountViewState =
+  'ready' | 'loading' | 'error' | 'signedOut' | 'expired'
 
 export const authSearchSchema = z.object({
   redirect: z.string().optional(),

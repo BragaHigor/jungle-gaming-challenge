@@ -1,3 +1,4 @@
+import { accountHandlers } from './account-handlers'
 import { currentCart } from './cart'
 import { cartHandlers } from './cart-handlers'
 import { http, HttpResponse } from 'msw'
@@ -37,26 +38,6 @@ const privateReads = [
       const fault = await scenarioResponse(request)
       if (fault) return fault
       return json(await requireSession(request))
-    }),
-  ),
-  http.get('/api/profile', ({ request }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      return json(
-        (await readDatabase()).profiles.find(
-          (profile) => profile.id === session.user.id,
-        ),
-      )
-    }),
-  ),
-  http.get('/api/wallets', ({ request }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      return json(
-        (await readDatabase()).wallets.filter(
-          (wallet) => wallet.userId === session.user.id,
-        ),
-      )
     }),
   ),
   http.get('/api/favorites', ({ request }) =>
@@ -99,6 +80,25 @@ export const handlers = [
         demoRequestSchema,
         await jsonBody(request),
       )
+      if (scenario.startsWith('account-')) {
+        await updateDatabase((database) => {
+          const { user } = requireUser(database, request)
+          const faults = {
+            'account-slow': 'slow',
+            'account-read-failure': 'read-failure',
+            'account-write-failure': 'write-failure',
+            'account-validation': 'validation',
+          } as const
+          const fault = faults[scenario as keyof typeof faults]
+          if (fault) database.accountFaults[user.id] = fault
+          else delete database.accountFaults[user.id]
+        })
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
       const cartScenarios = [
         'cart-empty',
         'coupon-invalid',
@@ -219,6 +219,7 @@ export const handlers = [
   ),
   ...cartHandlers,
   ...privateReads,
+  ...accountHandlers,
   http.post('/api/auth/login', ({ request }) =>
     respond(async () => {
       const input = parseInput(loginRequestSchema, await jsonBody(request))

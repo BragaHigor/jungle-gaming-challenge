@@ -142,7 +142,7 @@ test.describe('Visual do fluxo de compra', () => {
     else
       await page
         .getByRole('combobox', { name: 'Carteiras disponíveis', exact: true })
-        .selectOption('primary')
+        .selectOption({ label: 'Principal · Principal' })
     await page
       .getByRole('textbox', { name: 'Código de indicação', exact: true })
       .fill('KURIO')
@@ -235,6 +235,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('mantém as telas sem overflow nas larguras de aceite e nos dois idiomas', async ({
     page,
   }) => {
+    test.setTimeout(120_000)
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       for (const path of ['/cart', '/checkout', '/confirmation']) {

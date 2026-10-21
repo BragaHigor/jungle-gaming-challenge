@@ -11,7 +11,7 @@ import type { RegistrationDraft } from '@/schemas/account'
 const hex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
-async function hashPassword(password: string, salt: string) {
+export async function hashPassword(password: string, salt: string) {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
@@ -58,6 +58,11 @@ export async function login(email: string, password: string) {
   return updateDatabase((database) => {
     if (database.generation !== snapshot.generation)
       throw new MockError('SCENARIO_RESET', 409)
+    if (
+      database.users.find((value) => value.id === user.id)?.passwordHash !==
+      user.passwordHash
+    )
+      throw new MockError('UNAUTHORIZED', 401)
     return createSession(database, user.id)
   })
 }

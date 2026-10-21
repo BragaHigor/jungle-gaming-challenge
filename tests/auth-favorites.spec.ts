@@ -215,7 +215,14 @@ test('faz rollback na falha de favoritos e recupera sem apagar a sessão', async
     .getByRole('button', { name: 'Tentar novamente', exact: true })
     .click()
   await scenario(page, 'favorites-ready')
+  const saved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith('/favorites') &&
+      response.request().method() === 'POST' &&
+      response.ok(),
+  )
   await button.click()
+  await saved
   await expect(button).toBeEnabled()
   expect((await request(page, '/favorites')).body.nftIds).toEqual([
     'emerald-ape-042',

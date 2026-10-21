@@ -59,6 +59,12 @@ export const databaseSchema = z.strictObject({
   favoriteVersions: z.record(z.string(), z.int().positive()).default({}),
   favoriteFailures: z.array(z.string()).default([]),
   sessions: z.array(sessionRecordSchema),
+  accountFaults: z
+    .record(
+      z.string(),
+      z.enum(['slow', 'read-failure', 'write-failure', 'validation']),
+    )
+    .default({}),
   idempotency: z.record(
     z.string(),
     z.strictObject({
@@ -331,8 +337,10 @@ function statusFromDatabase(
   token?: string | null,
 ): DemoStatus {
   const session = getSession(database, token)
+  const fault = session && database.accountFaults[session.user.id]
+  const scenario: Scenario = fault ? `account-${fault}` : database.scenario
   return {
-    scenario: database.scenario,
+    scenario,
     generation: database.generation,
     session,
     pendingOrderId:

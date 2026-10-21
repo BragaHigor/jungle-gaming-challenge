@@ -30,6 +30,9 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   ] as const
   const isCartScenario = (scenario: Scenario) =>
     cartScenarios.some((value) => value === scenario)
+  const accountResourceScenarios = scenarios.filter((scenario) =>
+    scenario.startsWith('account-'),
+  )
   const excludedScenario = pathname === '/' ? 'sold-out' : 'empty'
   const privateScenarios = [
     'session-expired',
@@ -42,6 +45,7 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
     (scenario) =>
       scenario !== excludedScenario &&
       !isCartScenario(scenario) &&
+      !scenario.startsWith('account-') &&
       (!isPrivateScenario(scenario) || session),
   )
   const accountScenarios = session
@@ -49,6 +53,8 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
     : (['default'] as const)
   let visibleScenarios: readonly Scenario[] = accountScenarios
   if (isCatalogRoute) visibleScenarios = catalogScenarios
+  if (session && (pathname === '/profile' || pathname === '/wallets'))
+    visibleScenarios = [...accountScenarios, ...accountResourceScenarios]
   if (pathname === '/cart' || pathname === '/checkout')
     visibleScenarios = [...accountScenarios, ...cartScenarios]
   const candidate = selection ?? status.data?.scenario ?? 'default'
