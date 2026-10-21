@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+
+jobs:
+  branch-policy:
+    name: Fluxo de branches
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - name: Validar origem da promoção para main
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_BRANCH: ${{ github.base_ref }}
+          HEAD_BRANCH: ${{ github.head_ref }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if [[ "$EVENT_NAME" == 'pull_request' && "$BASE_BRANCH" == 'main' ]]; then
+            if [[ "$HEAD_BRANCH" != 'develop' || "$HEAD_REPOSITORY" != "$REPOSITORY" ]]; then
+              echo 'A promoção para main deve vir da develop deste repositório.' >&2
+              exit 1
+            fi
+          fi
+
+  quality:
+    name: Qualidade
+    needs: branch-policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      HUSKY: '0'
+      VITE_ENABLE_MOCKS: 'true'
+    steps:
+      - name: Obter o código do run
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Configurar Node e cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Fixar npm da aplicação
+        run: npm install --global npm@11.6.0
+      - name: Instalar pelo lockfile
+        run: npm ci
+      - name: Conferir formatação
+        run: npm run format:check
+      - name: Conferir lint
+        run: npm run lint
+      - name: Construir e verificar tipos
+        run: npm run build
+      - name: Instalar Chromium e dependências
+        run: npm exec -- playwright install --with-deps chromium
+      - name: Testar desktop, mobile e traduções
+        run: npm run test:e2e
+      - name: Conferir smoke do build local
+        run: npm run test:deploy
+      - name: Guardar relatório e traces
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: testes-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            playwright-report/
+            test-results/
+            reports/deploy/
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Guardar build aprovado
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: app-${{ github.sha }}
+          path: dist/
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 7
