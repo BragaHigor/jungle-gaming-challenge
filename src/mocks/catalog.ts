@@ -23,7 +23,7 @@ function integerParam(value: string | undefined) {
   if (!/^[1-9][0-9]*$/.test(value)) return NaN
   return Number(value)
 }
-export function listNfts(url: URL) {
+export async function listNfts(url: URL) {
   const params = Object.fromEntries(url.searchParams)
   const query = parseInput(catalogQuerySchema, {
     ...params,
@@ -38,7 +38,7 @@ export function listNfts(url: URL) {
     page: integerParam(params.page),
     pageSize: integerParam(params.pageSize),
   })
-  const database = readDatabase()
+  const database = await readDatabase()
   const matches = database.nfts
     .filter((nft) => {
       if (database.scenario === 'empty') return false

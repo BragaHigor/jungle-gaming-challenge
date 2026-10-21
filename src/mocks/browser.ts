@@ -5,7 +5,7 @@ import { readDatabase } from './database'
 
 const worker = setupWorker(...handlers, realtimeHandler)
 export async function startMocks() {
-  readDatabase()
+  await readDatabase()
   await worker.start({
     quiet: true,
     serviceWorker: { url: `${import.meta.env.BASE_URL}mockServiceWorker.js` },
