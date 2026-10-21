@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import type { CatalogTab, Category } from '@/types/catalog'
-import { UnavailableAction } from '@/components/UnavailableAction'
+import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Icon } from '@/components/ui/Icon'
 
 export function HomeHighlights({

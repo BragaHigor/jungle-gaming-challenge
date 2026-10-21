@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { QuantityStepper } from '@/components/QuantityStepper'
+import { QuantityStepper } from '@/components/ui/QuantityStepper'
 import { Icon } from '@/components/ui/Icon'
 import type { PurchaseItem } from '@/types/purchase'
 import { ethToWei, weiToEth } from '@/utils/eth'

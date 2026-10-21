@@ -1,8 +1,8 @@
-import { NftGrid } from '@/components/NftGrid'
+import { NftGrid } from '@/components/catalog/NftGrid'
 import { useTranslation } from 'react-i18next'
 import type { ViewState } from '@/types/catalog'
 import { Button } from '@/components/ui/button'
-import { NftCardSkeleton } from '@/components/NftCard'
+import { NftCardSkeleton } from '@/components/catalog/NftCard'
 
 export function CatalogState({
   state,
