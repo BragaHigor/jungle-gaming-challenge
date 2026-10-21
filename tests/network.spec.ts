@@ -151,10 +151,10 @@ test('rejeita payloads inválidos sem alterar o banco nem confirmar uma operaç�
     method: 'POST',
     body: { nftId: 'emerald-ape-042', editionId: '1/50', quantity: 1 },
   })
-  expect(valid.status).toBe(501)
+  expect(valid.status).toBe(200)
   expect((await browserRequest(page, '/cart')).body).toMatchObject({
-    items: [],
-    version: 1,
+    items: [{ nftId: 'emerald-ape-042', editionId: '1/50', quantity: 1 }],
+    version: 2,
   })
 })
 

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
@@ -8,25 +7,50 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { NftCard } from '@/components/catalog/NftCard'
 import type { PurchaseItem } from '@/types/purchase'
-import type { CatalogNft, ViewState } from '@/types/catalog'
-import { presentationTotals } from '@/utils/purchase'
+import type { CatalogNft } from '@/types/catalog'
+import { useCart, useCartQuote } from '@/hooks/useCart'
+import { ApiError } from '@/api/client'
 
-export function CartPage({
-  initialItems,
-  related,
-  state = 'ready',
-  onRetry,
-}: {
-  initialItems: readonly PurchaseItem[]
-  related: readonly CatalogNft[]
-  state?: ViewState
-  onRetry: () => void
-}) {
+export function CartPage({ related }: { related: readonly CatalogNft[] }) {
   const { t } = useTranslation('purchase')
   const { t: card } = useTranslation('card')
-  const [items, setItems] = useState(state === 'empty' ? [] : [...initialItems])
-  const loading = state === 'loading'
-  const failure = state === 'error' || state === 'unavailable'
+  const cart = useCart()
+  const quote = useCartQuote()
+  const data = cart.query.data
+  const items: readonly PurchaseItem[] = data?.lines ?? []
+  const loading = cart.query.isPending
+  const failure = cart.query.isError && !data
+  const busy = cart.mutation.isPending || cart.query.isFetching
+  const needsReview = Boolean(
+    quote.query.data?.requiresReview && cart.reviewedId !== quote.query.data.id,
+  )
+  const invalidStock = data && !data.stockValid
+  const unavailable =
+    busy ||
+    quote.query.isFetching ||
+    !quote.query.data ||
+    quote.query.isError ||
+    cart.query.isError ||
+    quote.expired ||
+    needsReview ||
+    invalidStock
+  const needsRecalculation = quote.query.isError || quote.expired
+  const couponFailure =
+    quote.query.error instanceof ApiError &&
+    ['COUPON_INVALID', 'COUPON_EXPIRED'].includes(quote.query.error.code)
+  let quoteError: 'quoteError' | 'couponExpired' | 'couponInvalid' =
+    'quoteError'
+  if (couponFailure) quoteError = 'couponExpired'
+  if (
+    quote.query.error instanceof ApiError &&
+    quote.query.error.code === 'COUPON_INVALID'
+  )
+    quoteError = 'couponInvalid'
+  const mutationType = cart.mutation.variables?.action.type
+  const writeFailed =
+    cart.mutation.isError &&
+    (mutationType === 'quantity' || mutationType === 'remove')
+  const onRetry = () => void cart.query.refetch()
   const renderCartContent = () => {
     if (failure)
       return (
@@ -63,33 +87,65 @@ export function CartPage({
           ) : (
             <PurchaseItems
               items={items}
+              disabled={busy}
               onQuantity={(id, quantity) =>
-                setItems((current) =>
-                  current.map((item) =>
-                    item.nft.id === id ? { ...item, quantity } : item,
-                  ),
-                )
+                cart.change({ type: 'quantity', id, quantity })
               }
-              onRemove={(id) =>
-                setItems((current) =>
-                  current.filter((item) => item.nft.id !== id),
-                )
-              }
+              onRemove={(id) => cart.change({ type: 'remove', id })}
             />
           )}
         </section>
         <aside className="min-w-0 max-tablet:-mx-[var(--page-gutter)] max-tablet:rounded-t-[32px] max-tablet:bg-[image:var(--gradient-surface)] max-tablet:p-6">
           <OrderSummary
-            totals={presentationTotals(items)}
-            loading={loading}
+            totals={quote.query.data?.totals}
+            loading={loading || busy || quote.query.isFetching}
             coupon
           >
+            {needsRecalculation && (
+              <div
+                className={`mt-4 space-y-2 text-sm ${quote.query.isError ? 'text-destructive' : 'text-primary'}`}
+                role={quote.query.isError ? 'alert' : 'status'}
+              >
+                {quote.query.isError && <p>{t(quoteError)}</p>}
+                {quote.expired && <p>{t('quoteExpired')}</p>}
+                <Button
+                  variant="outline"
+                  disabled={busy || quote.query.isFetching}
+                  onClick={() => void quote.query.refetch()}
+                >
+                  {t('recalculate')}
+                </Button>
+              </div>
+            )}
+            {needsReview && !needsRecalculation && (
+              <div
+                className="mt-4 space-y-2 text-sm text-primary"
+                role="status"
+              >
+                <p>{t('quoteChanged')}</p>
+                <Button
+                  variant="outline"
+                  disabled={busy}
+                  onClick={() => cart.setReviewedId(quote.query.data!.id)}
+                >
+                  {t('reviewedValues')}
+                </Button>
+              </div>
+            )}
+            {!quote.expired && (
+              <p
+                className={`mt-3 text-xs text-secondary ${quote.query.data ? '' : 'invisible'}`}
+                aria-hidden={!quote.query.data}
+              >
+                {t('quoteValidity')}
+              </p>
+            )}
             <Button
-              disabled={loading}
-              asChild={!loading}
+              disabled={Boolean(unavailable)}
+              asChild={!unavailable}
               className="mt-7 w-full max-tablet:min-h-15 max-tablet:rounded-full max-tablet:bg-[image:var(--gradient-copper)]"
             >
-              {loading ? (
+              {unavailable ? (
                 <span>{t('checkout')}</span>
               ) : (
                 <Link to="/checkout">{t('checkout')}</Link>
@@ -109,6 +165,39 @@ export function CartPage({
   return (
     <section className="min-w-0">
       <PurchaseHeader />
+      {data?.mergeNotice !== 'none' && data?.mergeNotice && (
+        <p
+          role="status"
+          className="mb-5 rounded-md border border-border bg-surface p-4 text-sm text-primary"
+        >
+          {t(data.mergeNotice === 'partial' ? 'mergePartial' : 'mergeDone')}
+        </p>
+      )}
+      {writeFailed && (
+        <p role="alert" className="mb-5 text-sm text-destructive">
+          {t('cartWriteError')}
+        </p>
+      )}
+      {cart.query.isError && data && (
+        <p role="alert" className="mb-5 text-sm text-destructive">
+          {t('loadError')}{' '}
+          <button
+            type="button"
+            className="min-h-11 underline"
+            onClick={onRetry}
+          >
+            {t('retry')}
+          </button>
+        </p>
+      )}
+      {invalidStock && (
+        <p
+          role="alert"
+          className="mb-5 rounded-md border border-destructive p-4 text-sm text-destructive"
+        >
+          {t('stockChanged')}
+        </p>
+      )}
       {renderCartContent()}
       <section className="mt-20 min-w-0" aria-label={t('related')}>
         <h2 className="mb-8 text-xl font-bold">{t('related')}</h2>

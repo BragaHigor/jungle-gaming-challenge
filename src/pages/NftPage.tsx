@@ -1,7 +1,8 @@
 import { CarouselDots } from '@/components/ui/CarouselDots'
 import { ethToWei, weiToEth } from '@/utils/eth'
+import { useCart } from '@/hooks/useCart'
 import { useRef, useState } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import type { CatalogNft, ViewState } from '@/types/catalog'
 import type { Nft } from '@/schemas/api/catalog'
@@ -33,7 +34,15 @@ export function NftPage({
   state?: ViewState
   onRetry: () => void
 }) {
-  const { t } = useTranslation(['detail', 'card', 'catalog', 'navigation'])
+  const { t } = useTranslation([
+    'detail',
+    'card',
+    'catalog',
+    'navigation',
+    'purchase',
+  ])
+  const cart = useCart()
+  const navigate = useNavigate()
   const [edition, setEdition] = useState(2)
   const [quantity, setQuantity] = useState(1)
   const [tab, setTab] = useState(0)
@@ -102,28 +111,52 @@ export function NftPage({
       </div>
       <div className="purchase-actions flex min-w-0 gap-3 items-center flex-1 tablet:flex-[0_1_auto]">
         <Button
-          asChild={maximum > 0}
-          disabled={maximum === 0}
+          disabled={maximum === 0 || cart.mutation.isPending}
           className="nft-buy flex-1 tracking-[0.05em] tablet:min-w-32.5"
+          onClick={() =>
+            cart.change(
+              {
+                type: 'add',
+                item: {
+                  nftId: nft.id,
+                  editionId: selectedEdition.id,
+                  quantity: selectedQuantity,
+                },
+              },
+              () => void navigate({ to: '/cart' }),
+            )
+          }
         >
           {maximum === 0 ? (
             t('detail:soldOut')
           ) : (
-            <Link to="/cart">
+            <>
               {t('detail:buy')}
               <span className="mobile-buy-nft hidden max-tablet:inline">
                 {' '}
                 NFT
               </span>
-            </Link>
+            </>
           )}
         </Button>
-        <UnavailableAction
+        <button
+          type="button"
+          disabled={maximum === 0 || cart.mutation.isPending}
           className="nft-add-cart border border-input text-primary-hover shrink-0 icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55"
           aria-label={t('detail:addCart')}
+          onClick={() =>
+            cart.change({
+              type: 'add',
+              item: {
+                nftId: nft.id,
+                editionId: selectedEdition.id,
+                quantity: selectedQuantity,
+              },
+            })
+          }
         >
           <Icon name="cart" />
-        </UnavailableAction>
+        </button>
         <FavoriteButton
           nftId={nft.id}
           title={nft.title}
@@ -237,6 +270,13 @@ export function NftPage({
           <p className="mt-2 text-xs text-secondary" role="status">
             {t('detail:availability', { count: maximum })}
           </p>
+          {cart.mutation.isSuccess &&
+            cart.mutation.variables.action.type === 'add' &&
+            cart.mutation.variables.action.item.nftId === nft.id && (
+              <p role="status" className="mt-2 text-xs text-primary">
+                {t('purchase:addedToCart')}
+              </p>
+            )}
           <div className="desktop-purchase flex items-center gap-4 mt-6 mr-0 mb-6 ml-0 [&_.nft-add-cart]:hidden max-wide:tablet:max-w-125 max-tablet:hidden tablet:mt-2 tablet:mr-0 tablet:mb-4 tablet:ml-0 tablet:justify-between tablet:[&_.nft-favorite]:flex tablet:[&_.nft-favorite]:w-auto tablet:[&_.nft-favorite]:pl-3 tablet:[&_.nft-favorite]:pr-3 tablet:[&_.nft-favorite]:gap-2 tablet:[&_.nft-favorite]:text-[13px]">
             {purchaseControls}
           </div>

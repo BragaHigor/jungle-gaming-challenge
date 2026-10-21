@@ -19,6 +19,14 @@ export const scenarios = [
   'session-expired',
   'favorites-failure',
   'favorites-ready',
+  'cart-empty',
+  'coupon-invalid',
+  'coupon-expired',
+  'quote-failure',
+  'cart-price-change',
+  'cart-stock-change',
+  'cart-ready',
+  'cart-slow',
 ] as const
 export const scenarioSchema = z.enum(scenarios)
 export const demoRequestSchema = z.strictObject({ scenario: scenarioSchema })

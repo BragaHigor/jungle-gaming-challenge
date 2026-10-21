@@ -14,15 +14,22 @@ import {
   type CollectorDraft,
   type CollectorErrors,
 } from '@/schemas/collector'
-import type { PurchaseItem, WalletOption } from '@/types/purchase'
-import { presentationTotals } from '@/utils/purchase'
+import type {
+  PurchaseItem,
+  PurchaseTotals,
+  WalletOption,
+} from '@/types/purchase'
 
 export function CheckoutPage({
   items,
   wallets,
+  totals,
+  quoteReady = false,
 }: {
   items: readonly PurchaseItem[]
   wallets: readonly WalletOption[]
+  totals?: PurchaseTotals
+  quoteReady?: boolean
 }) {
   const { t } = useTranslation('purchase')
   const [draft, setDraft] = useState<CollectorDraft>({
@@ -44,7 +51,6 @@ export function CheckoutPage({
   const [review, setReview] = useState(false)
   const fields = useRef<HTMLDetailsElement>(null)
   const reviewButton = useRef<HTMLButtonElement>(null)
-  const totals = presentationTotals(items)
   function change(key: keyof CollectorDraft, value: string) {
     if (key === 'address' || key === 'network') {
       setSelected('')
@@ -88,6 +94,7 @@ export function CheckoutPage({
     ? t('fixFields')
     : ''
   function validate() {
+    if (!quoteReady || !totals) return
     const result = collectorSchema.safeParse(draft)
     if (!result.success) {
       setErrors(
@@ -164,11 +171,14 @@ export function CheckoutPage({
               </div>
               <div className="flex justify-end gap-5 font-bold tablet:hidden">
                 <span>{t('total')}</span>
-                <strong className="text-primary">{totals.total} ETH</strong>
+                <strong className="text-primary">
+                  {totals?.total ?? '—'} ETH
+                </strong>
               </div>
               <Button
                 type="button"
                 ref={reviewButton}
+                disabled={!quoteReady}
                 onClick={validate}
                 className="w-full max-tablet:min-h-15 max-tablet:rounded-full max-tablet:bg-[image:var(--gradient-copper)]"
               >
@@ -206,7 +216,24 @@ export function CheckoutPage({
                 </div>
               </dl>
               <OrderSummary totals={totals} />
-              <UnavailableAction className="min-h-11 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground">
+              {!quoteReady && (
+                <div
+                  role="alert"
+                  className="space-y-2 text-sm text-destructive"
+                >
+                  <p>{t('returnToCart')}</p>
+                  <Link
+                    to="/cart"
+                    className="inline-block min-h-11 content-center underline"
+                  >
+                    {t('backToCart')}
+                  </Link>
+                </div>
+              )}
+              <UnavailableAction
+                disabled={!quoteReady}
+                className="min-h-11 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground"
+              >
                 {t('confirm')}
               </UnavailableAction>
             </DialogContent>

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { CartProvider } from './CartProvider'
 import { SessionProvider } from './SessionProvider'
 import { FavoritesProvider } from './FavoritesProvider'
 import { DemoProvider } from './DemoProvider'
@@ -72,9 +73,11 @@ export function App() {
   return (
     <SessionProvider>
       <FavoritesProvider>
-        <DemoProvider>
-          <AppContent />
-        </DemoProvider>
+        <CartProvider>
+          <DemoProvider>
+            <AppContent />
+          </DemoProvider>
+        </CartProvider>
       </FavoritesProvider>
     </SessionProvider>
   )

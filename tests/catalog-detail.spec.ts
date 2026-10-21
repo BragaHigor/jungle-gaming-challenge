@@ -250,7 +250,7 @@ test.describe('Visual do catálogo e dos detalhes', () => {
           () => document.documentElement.scrollWidth <= innerWidth,
         ),
       ).toBe(true)
-      await expect(page.getByRole('link', { name: /^BUY/ })).toBeVisible()
+      await expect(page.getByRole('button', { name: /^BUY/ })).toBeVisible()
     })
   }
 })

@@ -7,18 +7,18 @@ export function PurchaseHeader({ checkout = false }: { checkout?: boolean }) {
   const { t } = useTranslation('purchase')
   return (
     <>
-      <div className="mb-8 flex items-center gap-3 tablet:hidden">
+      <div className="mb-8 flex items-center gap-[12px] tablet:hidden">
         <Link
           to={checkout ? '/cart' : '/'}
           aria-label={t('back')}
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-surface text-primary"
+          className="grid size-[44px] shrink-0 place-items-center rounded-full bg-surface text-primary"
         >
           <Icon name="back" />
         </Link>
         <h1 className="min-w-0 flex-1 text-center text-lg font-bold">
           {t(checkout ? 'checkoutTitle' : 'cartTitle')}
         </h1>
-        <NavigationMenu className="grid size-11 shrink-0 place-items-center text-primary" />
+        <NavigationMenu className="grid size-[44px] shrink-0 place-items-center text-primary" />
       </div>
       <nav
         aria-label={t('breadcrumb')}
