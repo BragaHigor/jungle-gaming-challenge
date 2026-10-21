@@ -1,39 +1,60 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-muted: var(--muted);
-  --color-border: var(--border);
-  --color-ring: var(--ring);
-}
-
-:root {
-  --background: #140d0a;
-  --foreground: #f5f1eb;
-  --primary: #d28a4c;
-  --primary-foreground: #140d0a;
-  --muted: #241612;
-  --border: #795344;
-  --ring: #d28a4c;
-  font-family: monospace;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-}
+@import './tokens.css';
 
 @layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+    scroll-padding-top: 1.5rem;
+  }
   body {
     margin: 0;
+    min-width: 0;
     background: var(--background);
     color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    letter-spacing: 0.02em;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  fieldset {
+    min-width: 0;
+  }
+  button {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+  a,
+  button,
+  input,
+  select,
+  textarea {
+    -webkit-tap-highlight-color: transparent;
+  }
+  img {
+    display: block;
+    max-width: 100%;
   }
   :focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 4px;
+  }
+  ::selection {
+    background: var(--primary);
+    color: var(--background);
   }
   @media (prefers-reduced-motion: reduce) {
     *,

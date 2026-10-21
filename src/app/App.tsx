@@ -1,10 +1,38 @@
 import { useEffect } from 'react'
-import { Link, Outlet } from '@tanstack/react-router'
+import { Outlet, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { LanguageSelect } from '@/components/LanguageSelect'
+import { Header } from '@/components/layout/Header'
+import { Footer } from '@/components/layout/Footer'
+import { MobileNavigation } from '@/components/layout/MobileNavigation'
+
+const mobileNavigationSpace =
+  'max-tablet:pb-[calc(8rem_+_env(safe-area-inset-bottom))]'
+
+const pageClasses = {
+  auth: '[&>footer]:hidden max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden',
+  account: `[&>footer]:hidden ${mobileNavigationSpace}`,
+  home: `site-layout--home max-tablet:[&>.site-header]:hidden ${mobileNavigationSpace}`,
+  nft: 'site-layout--nft max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:pb-[calc(200px_+_env(safe-area-inset-bottom))] max-tablet:[@media(max-height:500px)]:pb-0 max-tablet:[&_.page-content]:mt-0',
+  cart: `max-tablet:[&>.site-header]:hidden max-tablet:[&_.page-content]:mt-4 ${mobileNavigationSpace}`,
+  purchase:
+    'max-tablet:[&>.site-header]:hidden max-tablet:[&>.mobile-navigation]:hidden max-tablet:[&_.page-content]:mt-4',
+}
+
+const getPageClass = (pathname: string) => {
+  if (['/login', '/register'].includes(pathname)) return pageClasses.auth
+  if (['/profile', '/wallets'].includes(pathname)) return pageClasses.account
+  if (pathname === '/') return pageClasses.home
+  if (pathname.startsWith('/nfts/')) return pageClasses.nft
+  if (pathname === '/cart') return pageClasses.cart
+  if (['/checkout', '/confirmation'].includes(pathname))
+    return pageClasses.purchase
+  return mobileNavigationSpace
+}
 
 export function App() {
   const { t } = useTranslation()
+  const { pathname } = useLocation()
+  const pageClass = getPageClass(pathname)
 
   useEffect(() => {
     document.title = t('pageTitle')
@@ -14,22 +42,25 @@ export function App() {
   }, [t])
 
   return (
-    <div className="mx-auto max-w-6xl space-y-10 px-6 py-8">
-      <a href="#content" className="sr-only focus:not-sr-only">
+    <div
+      className={`site-layout wrap-anywhere pt-6 max-tablet:pt-2 ${pageClass}`}
+    >
+      <a
+        href="#content"
+        className="skip-link fixed top-2 left-2 z-100 pt-3 pr-4 pb-3 pl-4 rounded-md bg-primary text-background [transform:translateY(-200%)] focus:[transform:translateY(0)]"
+      >
         {t('skipToContent')}
       </a>
-      <header className="flex flex-wrap items-center justify-between gap-6">
-        <Link
-          to="/"
-          className="text-2xl font-bold tracking-widest text-primary"
-        >
-          KURIO
-        </Link>
-        <LanguageSelect />
-      </header>
-      <main id="content" tabIndex={-1}>
+      <Header />
+      <main
+        id="content"
+        tabIndex={-1}
+        className="page-container w-full max-w-[calc(var(--content-width)_+_var(--page-gutter)_*_2)] ml-auto mr-auto pl-[var(--page-gutter)] pr-[var(--page-gutter)] page-content mt-8"
+      >
         <Outlet />
       </main>
+      <Footer />
+      <MobileNavigation />
     </div>
   )
 }
