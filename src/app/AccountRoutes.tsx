@@ -2,7 +2,6 @@ import { getRouteApi, useNavigate } from '@tanstack/react-router'
 import { AuthPage } from '@/pages/AuthPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { WalletsPage } from '@/pages/WalletsPage'
-import { homeCards } from '@/mocks/presentation'
 import type { SavedWallet } from '@/types/account'
 
 const loginApi = getRouteApi('/login')
@@ -35,7 +34,6 @@ export function LoginRoute() {
     <AuthPage
       mode="login"
       state={view}
-      cards={homeCards}
       onClose={() => void navigate({ to: '/' })}
     />
   )
@@ -47,7 +45,6 @@ export function RegistrationRoute() {
     <AuthPage
       mode="register"
       state={view}
-      cards={homeCards}
       onClose={() => void navigate({ to: '/' })}
     />
   )

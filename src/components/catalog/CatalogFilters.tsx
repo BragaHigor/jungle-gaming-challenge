@@ -3,7 +3,6 @@ import { Select } from '@/components/ui/select'
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import { categories, networks } from '@/constants/catalog'
-import type { CatalogNft } from '@/types/catalog'
 import type { CatalogControls } from '@/hooks/useCatalog'
 import { centiEth } from '@/utils/eth'
 import { Button } from '@/components/ui/button'
@@ -53,13 +52,7 @@ export function CatalogSort({
   )
 }
 
-export function CatalogFilters({
-  cards,
-  controls,
-}: {
-  cards: readonly CatalogNft[]
-  controls: CatalogControls
-}) {
+export function CatalogFilters({ controls }: { controls: CatalogControls }) {
   const { t } = useTranslation('catalog')
   const id = useId()
   return (
@@ -81,7 +74,7 @@ export function CatalogFilters({
             />
             <span>{t(category)}</span>
             <span className="filter-count">
-              ({cards.filter((card) => card.category === category).length})
+              ({controls.facets?.categories[category] ?? 0})
             </span>
           </label>
         ))}
@@ -150,7 +143,7 @@ export function CatalogFilters({
             />
             <span>{network}</span>
             <span className="filter-count">
-              ({cards.filter((card) => card.network === network).length})
+              ({controls.facets?.networks[network] ?? 0})
             </span>
           </label>
         ))}

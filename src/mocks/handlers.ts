@@ -25,9 +25,9 @@ import { scenarioResponse } from './scenarios'
 
 const json = (data: Parameters<typeof HttpResponse.json>[0]) =>
   HttpResponse.json(data, { headers: { 'Cache-Control': 'no-store' } })
-function requireSession(request: Request) {
+async function requireSession(request: Request) {
   const token = request.headers.get('Authorization')?.replace(/^Bearer /, '')
-  const session = getSession(readDatabase(), token)
+  const session = getSession(await readDatabase(), token)
   if (!session) throw new MockError('UNAUTHORIZED', 401)
   return session
 }
@@ -36,44 +36,46 @@ const privateReads = [
     respond(async () => {
       const fault = await scenarioResponse(request)
       if (fault) return fault
-      return json(requireSession(request))
+      return json(await requireSession(request))
     }),
   ),
   http.get('/api/profile', ({ request }) =>
-    respond(() => {
-      const session = requireSession(request)
+    respond(async () => {
+      const session = await requireSession(request)
       return json(
-        readDatabase().profiles.find(
+        (await readDatabase()).profiles.find(
           (profile) => profile.id === session.user.id,
         ),
       )
     }),
   ),
   http.get('/api/wallets', ({ request }) =>
-    respond(() => {
-      const session = requireSession(request)
+    respond(async () => {
+      const session = await requireSession(request)
       return json(
-        readDatabase().wallets.filter(
+        (await readDatabase()).wallets.filter(
           (wallet) => wallet.userId === session.user.id,
         ),
       )
     }),
   ),
   http.get('/api/favorites', ({ request }) =>
-    respond(() => {
-      const session = requireSession(request)
+    respond(async () => {
+      const session = await requireSession(request)
       return json({
         userId: session.user.id,
-        nftIds: readDatabase().favorites[session.user.id] ?? [],
+        nftIds: (await readDatabase()).favorites[session.user.id] ?? [],
         version: 1,
       })
     }),
   ),
   http.get('/api/orders/:id', ({ request, params }) =>
-    respond(() => {
-      const session = requireSession(request)
+    respond(async () => {
+      const session = await requireSession(request)
       const id = parseInput(resourceIdSchema, params.id)
-      const order = readDatabase().orders.find((value) => value.id === id)
+      const order = (await readDatabase()).orders.find(
+        (value) => value.id === id,
+      )
       if (!order) return failure('NOT_FOUND', 404)
       if (order.userId !== session.user.id) return failure('FORBIDDEN', 403)
       return json(order)
@@ -81,7 +83,7 @@ const privateReads = [
   ),
 ]
 export const handlers = [
-  http.get('/api/demo', () => respond(() => json(getDemoStatus()))),
+  http.get('/api/demo', () => respond(async () => json(await getDemoStatus()))),
   http.post('/api/demo/reset', ({ request }) =>
     respond(async () => {
       const { scenario } = parseInput(
@@ -107,10 +109,10 @@ export const handlers = [
     respond(async () => {
       const fault = await scenarioResponse(request)
       if (fault) return fault
-      if (readDatabase().scenario === 'malformed-response')
+      if ((await readDatabase()).scenario === 'malformed-response')
         return json({ items: [], total: 'invalid', page: 1, pageSize: 9 })
       return json(
-        parseInput(catalogResponseSchema, listNfts(new URL(request.url))),
+        parseInput(catalogResponseSchema, await listNfts(new URL(request.url))),
       )
     }),
   ),
@@ -118,18 +120,22 @@ export const handlers = [
     respond(async () => {
       const fault = await scenarioResponse(request)
       if (fault) return fault
+      if ((await readDatabase()).scenario === 'malformed-response')
+        return json({ id: params.id, price: 1 })
       const id = parseInput(resourceIdSchema, params.id)
-      const nft = readDatabase().nfts.find((value) => value.id === id)
+      const nft = (await readDatabase()).nfts.find((value) => value.id === id)
       if (!nft) return failure('NOT_FOUND', 404)
       return json(parseInput(nftSchema, nft))
     }),
   ),
   http.get('/api/cart', ({ request }) =>
-    respond(() => {
+    respond(async () => {
       const userId = request.headers.has('Authorization')
-        ? requireSession(request).user.id
+        ? (await requireSession(request)).user.id
         : null
-      return json(readDatabase().carts.find((cart) => cart.userId === userId))
+      return json(
+        (await readDatabase()).carts.find((cart) => cart.userId === userId),
+      )
     }),
   ),
   ...privateReads,
@@ -153,14 +159,14 @@ export const handlers = [
   ),
   http.post('/api/quotes', ({ request }) =>
     respond(async () => {
-      requireSession(request)
+      await requireSession(request)
       parseInput(quoteRequestSchema, await jsonBody(request))
       return failure('NOT_IMPLEMENTED', 501)
     }),
   ),
   http.post('/api/orders', ({ request }) =>
     respond(async () => {
-      requireSession(request)
+      await requireSession(request)
       parseInput(idempotencyKeySchema, request.headers.get('Idempotency-Key'))
       parseInput(orderRequestSchema, await jsonBody(request))
       return failure('NOT_IMPLEMENTED', 501)

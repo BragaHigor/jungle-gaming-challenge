@@ -1,3 +1,4 @@
+import { categories, networks } from '@/constants/catalog'
 import { catalogQuerySchema, type Nft } from '@/schemas/api/catalog'
 import { ethToWei } from '@/utils/eth'
 import { parseInput } from './responses'
@@ -22,7 +23,7 @@ function integerParam(value: string | undefined) {
   if (!/^[1-9][0-9]*$/.test(value)) return NaN
   return Number(value)
 }
-export function listNfts(url: URL) {
+export async function listNfts(url: URL) {
   const params = Object.fromEntries(url.searchParams)
   const query = parseInput(catalogQuerySchema, {
     ...params,
@@ -37,7 +38,7 @@ export function listNfts(url: URL) {
     page: integerParam(params.page),
     pageSize: integerParam(params.pageSize),
   })
-  const database = readDatabase()
+  const database = await readDatabase()
   const matches = database.nfts
     .filter((nft) => {
       if (database.scenario === 'empty') return false
@@ -54,6 +55,20 @@ export function listNfts(url: URL) {
     })
     .sort(comparators[query.sort])
   return {
+    facets: {
+      categories: Object.fromEntries(
+        categories.map((category) => [
+          category,
+          database.nfts.filter((nft) => nft.category === category).length,
+        ]),
+      ),
+      networks: Object.fromEntries(
+        networks.map((network) => [
+          network,
+          database.nfts.filter((nft) => nft.network === network).length,
+        ]),
+      ),
+    },
     items: matches.slice(
       (query.page - 1) * query.pageSize,
       query.page * query.pageSize,

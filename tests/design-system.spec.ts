@@ -2,6 +2,52 @@ import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
 test.describe('Componentes compartilhados e identidade visual', () => {
+  test('permite rolar as opções do cenário sem rolar o diálogo ou a página', async ({
+    page,
+  }) => {
+    await visit(page, '/')
+    await page
+      .getByRole('contentinfo')
+      .getByRole('button', { name: 'Demonstração', exact: true })
+      .click()
+    const dialog = page.getByRole('dialog', {
+      name: 'Controle da demonstração',
+      exact: true,
+    })
+    const select = dialog.getByRole('combobox', {
+      name: 'Cenário',
+      exact: true,
+    })
+    await select.click()
+    const first = page.getByRole('option', { name: 'Padrão', exact: true })
+    const firstBox = await first.boundingBox()
+    expect(firstBox).not.toBeNull()
+    const scroll = await page.evaluate(() => window.scrollY)
+    const dialogScroll = await dialog.evaluate((element) => element.scrollTop)
+    await page.mouse.move(
+      firstBox!.x + firstBox!.width / 2,
+      firstBox!.y + firstBox!.height / 2,
+    )
+    await page.mouse.wheel(0, 450)
+    await expect
+      .poll(async () => (await first.boundingBox())!.y)
+      .toBeLessThan(firstBox!.y - 30)
+    expect(await page.evaluate(() => window.scrollY)).toBe(scroll)
+    expect(await dialog.evaluate((element) => element.scrollTop)).toBe(
+      dialogScroll,
+    )
+    await page
+      .getByRole('option', {
+        name: 'Pedido pendente (conta fictícia)',
+        exact: true,
+      })
+      .click()
+    await expect(select).toHaveValue('pending-order')
+    await expect(select).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(dialog).not.toBeVisible()
+  })
+
   test('abre as opções do seletor e preserva escolha e foco pelo teclado', async ({
     page,
   }) => {

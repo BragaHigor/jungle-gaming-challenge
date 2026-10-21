@@ -15,7 +15,6 @@ import {
   type RegistrationDraft,
 } from '@/schemas/account'
 import type { AccountErrors, AccountFieldName } from '@/types/account'
-import type { CatalogNft } from '@/types/catalog'
 import { focusFirstInvalid, getAccountErrors } from '@/utils/forms'
 
 const authFields = {
@@ -72,12 +71,10 @@ const authCopy = {
 
 export function AuthPage({
   mode,
-  cards,
   state = 'ready',
   onClose,
 }: {
   mode: 'login' | 'register'
-  cards: readonly CatalogNft[]
   state?: AccountViewState
   onClose: () => void
 }) {
@@ -127,7 +124,7 @@ export function AuthPage({
   return (
     <>
       <div aria-hidden="true" inert className="max-tablet:hidden">
-        <HomePage cards={cards} onRetry={() => {}} />
+        <HomePage />
       </div>
       <Primitive.Root
         open

@@ -60,6 +60,10 @@ export const catalogQuerySchema = z
     { path: ['min'] },
   )
 export const catalogResponseSchema = z.strictObject({
+  facets: z.strictObject({
+    categories: z.record(z.enum(categories), z.int().min(0)),
+    networks: z.record(z.enum(networks), z.int().min(0)),
+  }),
   items: z.array(nftSchema),
   total: z.int().min(0),
   page: z.int().positive(),

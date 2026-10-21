@@ -10,7 +10,7 @@ export function NftPageSkeleton() {
       </p>
       <div aria-hidden="true">
         <Skeleton className="mb-2 hidden h-4 w-64 tablet:block" />
-        <div className="grid gap-10 wide:grid-cols-[572px_minmax(0,1fr)] max-tablet:gap-0">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-10 wide:grid-cols-[572px_minmax(0,1fr)] max-tablet:gap-0">
           <div className="mx-auto grid w-full max-w-155 grid-cols-[100px_minmax(0,1fr)] gap-7 max-tablet:block">
             <div className="flex flex-col gap-4 max-tablet:hidden">
               {Array.from({ length: 4 }, (_, index) => (
@@ -30,7 +30,7 @@ export function NftPageSkeleton() {
                 />
               ))}
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               {Array.from({ length: 4 }, (_, index) => (
                 <Skeleton
                   key={index}

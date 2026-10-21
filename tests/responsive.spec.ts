@@ -1,7 +1,44 @@
+import { setScenario } from './helpers/scenarios'
 import { visit } from './helpers/navigation'
 import { test, expect } from '@playwright/test'
 
 test.describe('Revisão visual e responsividade', () => {
+  test('mantém o skeleton e o detalhe sem overflow com texto ampliado durante a consulta', async ({
+    page,
+  }) => {
+    await visit(page, '/')
+    await setScenario(page, 'slow')
+    for (const language of ['pt-BR', 'en']) {
+      await page.evaluate(
+        (language) => localStorage.setItem('kurio-language', language),
+        language,
+      )
+      for (const width of [320, 390, 768]) {
+        await page.setViewportSize({ width, height: 844 })
+        await visit(page, '/nfts/emerald-ape-042')
+        await page.evaluate(() => {
+          document.documentElement.style.fontSize = '200%'
+        })
+        await expect(page.locator('.nft-detail-loading')).toBeVisible()
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `skeleton ${language} ${width}`,
+        ).toBe(true)
+        await expect(
+          page.getByRole('heading', { name: 'Emerald Ape #042', exact: true }),
+        ).toBeVisible()
+        expect(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+          `detail ${language} ${width}`,
+        ).toBe(true)
+      }
+    }
+  })
+
   test('mantém a mesma grade no catálogo carregado e no skeleton de tablet', async ({
     page,
   }) => {
@@ -13,7 +50,8 @@ test.describe('Revisão visual e responsividade', () => {
       media.nth(1).boundingBox(),
       media.nth(2).boundingBox(),
     ])
-    await visit(page, '/?view=loading')
+    await setScenario(page, 'slow')
+    await visit(page, '/')
     const loading = page.locator('.catalog-main .nft-card__media')
     for (const index of [0, 1, 2]) {
       const box = await loading.nth(index).boundingBox()
@@ -31,7 +69,9 @@ test.describe('Revisão visual e responsividade', () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
-    await visit(page, '/nfts/emerald-ape-042?view=loading')
+    await visit(page, '/')
+    await setScenario(page, 'slow')
+    await visit(page, '/nfts/emerald-ape-042')
     await expect(page.getByRole('status')).toHaveText('Carregando NFT…')
     await expect(page.locator('.nft-detail-loading')).toHaveAttribute(
       'aria-busy',
