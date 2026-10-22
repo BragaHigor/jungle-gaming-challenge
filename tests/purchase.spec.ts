@@ -115,6 +115,9 @@ test.describe('Visual do fluxo de compra', () => {
   }) => {
     await visitWithAccount(page, '/checkout')
     const writes: string[] = []
+    await page
+      .getByRole('textbox', { name: 'Nome de exibição', exact: true })
+      .fill('')
     page.on('request', (request) => {
       if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method()))
         writes.push(request.url())

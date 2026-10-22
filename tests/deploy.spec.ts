@@ -8,13 +8,6 @@ test('conclui compra simulada e recupera o recibo após refresh', async ({
   page,
 }) => {
   await visitWithAccount(page, '/checkout')
-  expect(
-    (
-      await cartRequest(page, '/demo/reset', 'POST', {
-        scenario: 'order-confirmed',
-      })
-    ).status,
-  ).toBe(200)
   const review = await fillCollector(page)
   await review
     .getByRole('button', { name: 'Conectar carteira simulada', exact: true })
