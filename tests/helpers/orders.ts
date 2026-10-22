@@ -1,9 +1,9 @@
 import { expect, type Page } from '@playwright/test'
 import { visitWithAccount } from './auth'
 import { cartRequest } from './cart'
-export async function seedPendingOrder(page: Page) {
+export async function seedPendingOrder(page: Page, scenario = 'order-pending') {
   await visitWithAccount(page, '/checkout')
-  await cartRequest(page, '/demo/reset', 'POST', { scenario: 'order-pending' })
+  await cartRequest(page, '/demo/reset', 'POST', { scenario })
   const wallet = (await cartRequest(page, '/wallets')).body[0]
   const cart = (await cartRequest(page)).body
   const collector = { ...wallet.draft, username: 'alexsilva', note: '' }

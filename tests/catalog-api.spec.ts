@@ -250,17 +250,18 @@ test('preserva as contagens dos filtros durante novas consultas', async ({
   page,
   isMobile,
 }) => {
-  test.skip(
-    isMobile,
-    'O painel usa as mesmas contagens no desktop e no mobile.',
-  )
   await visit(page, '/')
   await expect(page.locator('.catalog-grid article')).toHaveCount(9)
-  const counts = page.locator('.catalog-filters .filter-count')
+  if (isMobile)
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click()
+  const filters = page
+    .locator('.catalog-filters')
+    .filter({ visible: true })
+    .first()
+  const counts = filters.locator('.filter-count')
   const initialCounts = await counts.allTextContents()
   expect(initialCounts.length).toBeGreaterThan(0)
-  await page.evaluate(() => {
-    const root = document.querySelector('.catalog-filters')!
+  await filters.evaluate((root) => {
     const expected = [...root.querySelectorAll('.filter-count')].map(
       (node) => node.textContent,
     )
@@ -274,7 +275,7 @@ test('preserva as contagens dos filtros durante novas consultas', async ({
         changes.push(current)
     }).observe(root, { childList: true, characterData: true, subtree: true })
   })
-  await page.getByRole('checkbox', { name: 'Arte digital' }).check()
+  await filters.getByRole('checkbox', { name: 'Arte digital' }).check()
   await expect(page).toHaveURL(
     (url) => url.searchParams.get('categories') === '["digitalArt"]',
   )

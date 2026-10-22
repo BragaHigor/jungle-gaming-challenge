@@ -1,3 +1,4 @@
+import { fillCollector } from './helpers/purchase'
 import { test, expect, type Page } from '@playwright/test'
 import { visitWithAccount, signInFixture, submitLogin } from './helpers/auth'
 import { seedWallets } from './helpers/account'
@@ -9,27 +10,6 @@ async function setup(page: Page, scenario = 'order-confirmed') {
   expect(
     (await cartRequest(page, '/demo/reset', 'POST', { scenario })).status,
   ).toBe(200)
-}
-async function fillCollector(page: Page) {
-  const values = {
-    'Nome de exibição': 'Alex Silva',
-    'Nome de usuário': 'alexsilva',
-    'Nome do perfil': 'Minha coleção',
-    'Código de indicação': 'KURIO',
-    'E-mail': 'alex@example.com',
-    'Nome ENS': 'alex.eth',
-  }
-  for (const [name, value] of Object.entries(values))
-    await page.getByRole('textbox', { name, exact: true }).fill(value)
-  await page
-    .getByRole('button', { name: 'Revisar compra', exact: true })
-    .click()
-  const review = page.getByRole('dialog', {
-    name: 'Revisão da compra',
-    exact: true,
-  })
-  await expect(review).toBeVisible()
-  return review
 }
 async function apiInput(page: Page) {
   const wallet = (await cartRequest(page, '/wallets')).body[0]
