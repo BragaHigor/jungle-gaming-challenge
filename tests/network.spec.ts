@@ -1,6 +1,6 @@
 import { signInFixture } from './helpers/auth'
 import { readMockStorage, corruptMockStorage } from './helpers/storage'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 import { expect, test, type Page } from '@playwright/test'
 import { ethSchema } from '../src/schemas/api/common'
 import { ethToWei, weiToEth } from '../src/utils/eth'
@@ -50,6 +50,7 @@ const browserRequest = async <T = unknown>(
   options: { method?: string; body?: unknown; token?: string } = {},
 ) => {
   await expect(page.locator('.site-layout')).toBeVisible()
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ path, options }) => {
       const headers: Record<string, string> = {

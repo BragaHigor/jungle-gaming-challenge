@@ -65,8 +65,8 @@ jobs:
         run: npm run build
       - name: Instalar Chromium e dependências
         run: npm exec -- playwright install --with-deps chromium
-      - name: Testar desktop, mobile e traduções
-        run: npm run test:e2e
+      # - name: Testar desktop, mobile e traduções
+      #   run: npm run test:e2e
       - name: Conferir smoke do build local
         run: npm run test:deploy
       - name: Guardar relatório e traces

@@ -1,13 +1,14 @@
 import { expect, type Page } from '@playwright/test'
 import { seedWallets } from './account'
 import { seedCart } from './cart'
-import { visit } from './navigation'
+import { visit, waitForAppReady } from './navigation'
 
 export async function signInFixture(
   page: Page,
   email = 'colecionador@kurio.demo',
 ) {
   if (!page.url().startsWith('http')) await visit(page, '/')
+  await waitForAppReady(page)
   const status = await page.evaluate(async (email) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',

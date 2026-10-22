@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { visitWithAccount, signInFixture, submitLogin } from './helpers/auth'
 import { seedWallets } from './helpers/account'
 import { cartRequest } from './helpers/cart'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 
 async function setup(page: Page, scenario = 'order-confirmed') {
   await visitWithAccount(page, '/checkout')
@@ -57,6 +57,7 @@ async function apiInput(page: Page) {
   }
 }
 async function postOrder(page: Page, key: string, input: unknown) {
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ key, input }) => {
       const result = await fetch('/api/orders', {
@@ -298,11 +299,18 @@ test('pedidos de outro usuário são privados e o último pedido pode ser retoma
     await apiInput(page),
   )
   await signInFixture(page, 'visitante@kurio.demo')
-  await page.reload()
+  let delayedBootstrap = 0
+  await page.route(/\/assets\/browser-[^/]+\.js$/, async (route) => {
+    delayedBootstrap++
+    await new Promise((resolve) => setTimeout(resolve, 600))
+    await route.continue()
+  })
+  await page.reload({ waitUntil: 'domcontentloaded' })
   expect((await cartRequest(page, `/orders/${result.body.id}`)).status).toBe(
     403,
   )
   expect((await cartRequest(page, '/orders')).body).toEqual([])
+  expect(delayedBootstrap).toBeGreaterThan(0)
   await signInFixture(page)
   await visit(page, '/confirmation')
   await expect(
