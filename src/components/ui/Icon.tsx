@@ -1,6 +1,23 @@
 import type { ReactNode, SVGProps } from 'react'
 
 const paths = {
+  offer: (
+    <>
+      <rect x="4" y="5" width="16" height="15" rx="4" />
+      <path d="M8 3v4m8-4v4M7 15l4-4 3 3 4-5m-4 0h4v4" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M5 12v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6M12 3v12m-4-4 4 4 4-4" />
+    </>
+  ),
+  support: (
+    <>
+      <path d="m10.3 4-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3l-8-14a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v5m0 3h.01" />
+    </>
+  ),
   filter: (
     <>
       <path d="M4 7h16M4 17h16" />

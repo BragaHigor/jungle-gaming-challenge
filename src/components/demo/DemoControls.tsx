@@ -15,6 +15,7 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const { t: purchase } = useTranslation('purchase')
   const { session } = useSession()
   const {
+    start,
     status,
     order,
     reset,
@@ -34,6 +35,7 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
     | 'foreign'
     | 'wrong-generation'
   >('normal')
+  const [guidedSelection, setGuidedSelection] = useState<Scenario>('empty')
   const [selection, setSelection] = useState<Scenario | null>(null)
   const { pathname } = useLocation()
   const isCatalogRoute = pathname === '/' || pathname.startsWith('/nfts/')
@@ -96,10 +98,52 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
     status.error ?? order.error ?? reset.error ?? emit.error ?? connection.error
   const contractError = error instanceof ApiError && error.code === 'CONTRACT'
   const errorText = contractError ? t('contractError') : t('requestError')
-  const pending = reset.isPending || emit.isPending || connection.isPending
+  const pending =
+    start.isPending || reset.isPending || emit.isPending || connection.isPending
   const lastLabel = lastEvent === 'nft.updated' ? t('catalog') : t('order')
   return (
     <div className="space-y-5">
+      <section className="space-y-4 rounded-md border border-primary p-4">
+        <h3 className="font-bold">{t('guidedTitle')}</h3>
+        <p className="text-xs leading-relaxed text-secondary">
+          {t('guidedNotice')}
+        </p>
+        <label className="grid gap-2 text-sm">
+          {t('guidedScenario')}
+          <Select
+            value={guidedSelection}
+            disabled={pending}
+            onChange={(event) =>
+              setGuidedSelection(scenarioSchema.parse(event.target.value))
+            }
+          >
+            {scenarios.map((scenario) => (
+              <option key={scenario} value={scenario}>
+                {t(`scenario_${scenario}`)}
+              </option>
+            ))}
+          </Select>
+        </label>
+        <p className="text-xs leading-relaxed text-secondary">
+          {t(`effect_${guidedSelection}`)}
+        </p>
+        <Button
+          disabled={pending}
+          onClick={() =>
+            start.mutate(guidedSelection, {
+              onSuccess: onApplied,
+            })
+          }
+        >
+          {t(pending ? 'preparing' : 'guidedStart')}
+        </Button>
+        {start.error && (
+          <p role="alert" className="text-sm text-destructive">
+            {t('requestError')}
+          </p>
+        )}
+      </section>
+      <h3 className="font-bold">{t('advancedTitle')}</h3>
       <p className="text-xs leading-relaxed text-secondary">{t('notice')}</p>
       <label className="grid gap-2 text-sm">
         {t('scenario')}

@@ -1,3 +1,5 @@
+import type { AuthMode } from '@/hooks/useAuthDialog'
+import { DemoBanner } from '@/components/demo/DemoBanner'
 import { useEffect, useRef, useState } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -75,11 +77,17 @@ export function AuthPage({
   state = 'ready',
   onClose,
   returnTo,
+  showBackground = true,
+  onSwitchMode,
+  onRestoreFocus,
 }: {
   mode: 'login' | 'register'
   state?: 'ready' | 'expired'
   onClose: () => void
   returnTo?: string
+  showBackground?: boolean
+  onSwitchMode?: (mode: AuthMode) => void
+  onRestoreFocus?: () => void
 }) {
   const { t } = useTranslation('account')
   const { t: common } = useTranslation()
@@ -146,7 +154,11 @@ export function AuthPage({
       const session = await authenticate(mode, draft, request.signal)
       if (request.signal.aborted || readToken() !== previousToken) return
       if (!(await replaceSession(session))) return
-      await navigate({ href: safeReturn(returnTo), replace: true })
+      await navigate({
+        href: safeReturn(returnTo),
+        replace: true,
+        resetScroll: showBackground,
+      })
     } catch (error) {
       if (request.signal.aborted) return
       if (error instanceof ApiError && error.code === 'CONFLICT') {
@@ -170,9 +182,11 @@ export function AuthPage({
   }
   return (
     <>
-      <div aria-hidden="true" inert className="max-tablet:hidden">
-        <HomePage />
-      </div>
+      {showBackground && (
+        <div aria-hidden="true" inert className="max-tablet:hidden">
+          <HomePage />
+        </div>
+      )}
       <Primitive.Root
         open
         onOpenChange={(open) => {
@@ -190,11 +204,13 @@ export function AuthPage({
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault()
-              requestAnimationFrame(() =>
-                document
-                  .querySelector<HTMLElement>('main')
-                  ?.focus({ preventScroll: true }),
-              )
+              requestAnimationFrame(() => {
+                if (onRestoreFocus) onRestoreFocus()
+                else
+                  document
+                    .querySelector<HTMLElement>('main')
+                    ?.focus({ preventScroll: true })
+              })
             }}
           >
             <Primitive.Close
@@ -215,6 +231,12 @@ export function AuthPage({
             >
               <Link
                 to="/login"
+                onClick={(event) => {
+                  if (onSwitchMode) {
+                    event.preventDefault()
+                    onSwitchMode('login')
+                  }
+                }}
                 search={{ redirect: returnTo }}
                 aria-current={loginCurrent}
                 className="aria-[current=page]:text-primary"
@@ -226,6 +248,12 @@ export function AuthPage({
               </span>
               <Link
                 to="/register"
+                onClick={(event) => {
+                  if (onSwitchMode) {
+                    event.preventDefault()
+                    onSwitchMode('register')
+                  }
+                }}
                 search={{ redirect: returnTo }}
                 aria-current={registerCurrent}
                 className="aria-[current=page]:text-primary"
@@ -239,6 +267,7 @@ export function AuthPage({
             <Primitive.Description className="mb-6 text-center text-xs text-foreground max-tablet:sr-only">
               {t(copy.lead)}
             </Primitive.Description>
+            <DemoBanner />
             <form
               ref={form}
               noValidate
@@ -303,6 +332,12 @@ export function AuthPage({
             </div>
             <Link
               to={copy.destination}
+              onClick={(event) => {
+                if (onSwitchMode) {
+                  event.preventDefault()
+                  onSwitchMode(isRegister ? 'login' : 'register')
+                }
+              }}
               search={{ redirect: returnTo }}
               className="mt-10 min-h-11 content-center text-center text-sm text-secondary tablet:hidden"
             >

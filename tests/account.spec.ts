@@ -358,12 +358,21 @@ test.describe('Visual de autenticação e conta', () => {
           .getByRole('link', { name: 'Entrar', exact: true })
           .click()
       }
-      await expect(page).toHaveURL('/login')
+      await expect(page).toHaveURL('/')
+      await expect(
+        page.getByRole('dialog', { name: 'Entrar', exact: true }),
+      ).toBeVisible()
       if (register) {
         await page
           .getByRole('link', { name: /^(Criar conta|Novo na Kurio.*)$/ })
           .click()
-        await expect(page).toHaveURL('/register')
+        await expect(page).toHaveURL('/')
+        await expect(
+          page.getByRole('dialog', {
+            name: 'Criar perfil de colecionador',
+            exact: true,
+          }),
+        ).toBeVisible()
       }
       await page.keyboard.press('Escape')
       await expect(page).toHaveURL('/')

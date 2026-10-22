@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady, delayAppBootstrap } from './helpers/navigation'
 import { setScenario } from './helpers/scenarios'
 
 async function search(page: Page, value: string, mobile: boolean) {
@@ -401,11 +401,14 @@ test('atualiza artes salvas anteriormente sem perder preço e versão', async ({
       }
     })
   }, nftId)
-  await page.reload()
+  const delayedBootstrap = await delayAppBootstrap(page)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppReady(page)
   const nft = await page.evaluate(
     async (id) => (await fetch(`/api/nfts/${id}`)).json(),
     nftId,
   )
+  expect(delayedBootstrap()).toBeGreaterThan(0)
   expect(nft).toMatchObject({
     image: '/images/nft-artwork-02.webp',
     imageAltKey: 'sageAlt',

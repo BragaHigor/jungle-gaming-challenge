@@ -1,9 +1,10 @@
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
 import ptBR from '../src/i18n/locales/pt-BR.json' with { type: 'json' }
 import en from '../src/i18n/locales/en.json' with { type: 'json' }
 
 async function languageSelect(page: Page) {
+  await waitForAppReady(page)
   const selector = page.getByRole('combobox', { name: /^(Idioma|Language)$/ })
   if (!(await selector.count())) {
     await page.getByRole('button', { name: /^(Abrir menu|Open menu)$/ }).click()

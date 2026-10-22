@@ -28,16 +28,27 @@ export function OrderResult({
       aria-label={t('orderDetails')}
     >
       <header className="border-b border-primary px-6 py-6 text-center">
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 80 80"
-          className="mx-auto mb-4 size-20 fill-none stroke-primary"
-          strokeWidth="2"
-        >
-          <rect x="12" y="25" width="56" height="42" rx="4" />
-          <path d="m12 28 28 20 28-20M24 14h32M29 7h22" />
-          {<path d={presentation.path} />}
-        </svg>
+        {order.status === 'confirmed' ? (
+          <img
+            src="/icons/icon-thank-you.svg"
+            alt=""
+            aria-hidden="true"
+            width={80}
+            height={80}
+            className="mx-auto mb-4 size-20"
+          />
+        ) : (
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 80 80"
+            className="mx-auto mb-4 size-20 fill-none stroke-primary"
+            strokeWidth="2"
+          >
+            <rect x="12" y="25" width="56" height="42" rx="4" />
+            <path d="m12 28 28 20 28-20M24 14h32M29 7h22" />
+            <path d={presentation.path} />
+          </svg>
+        )}
         <h1 className="text-base font-bold text-secondary" aria-live="polite">
           {t(order.status)}
         </h1>
@@ -79,7 +90,7 @@ export function OrderResult({
               <div className="min-w-0 flex-1 text-xs wrap-anywhere">
                 <strong className="block">{nft.title}</strong>
                 <span className="text-secondary">
-                  {t('token', { token: nft.token })} · ×{quantity}
+                  {t('token', { token: nft.token })}
                   {editionId && (
                     <span className="block">
                       {t('edition', { edition: editionId })}
@@ -87,9 +98,18 @@ export function OrderResult({
                   )}
                 </span>
               </div>
-              <strong className="text-xs text-primary">
-                {weiToEth(ethToWei(nft.price) * BigInt(quantity))} ETH
-              </strong>
+              <dl className="shrink-0 space-y-2 text-right text-xs">
+                <div>
+                  <dt className="text-secondary">{t('quantity')}</dt>
+                  <dd>{quantity}</dd>
+                </div>
+                <div>
+                  <dt className="text-secondary">{t('subtotal')}</dt>
+                  <dd className="font-bold text-primary">
+                    {weiToEth(ethToWei(nft.price) * BigInt(quantity))} ETH
+                  </dd>
+                </div>
+              </dl>
             </li>
           ))}
         </ul>

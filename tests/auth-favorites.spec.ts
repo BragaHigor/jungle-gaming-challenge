@@ -160,7 +160,10 @@ test('retorna ao NFT após login, atualiza favoritos otimistas e persiste após 
     .filter({ visible: true })
     .first()
   await favorite.click()
-  await expect(page).toHaveURL(/\/login\?redirect=/)
+  await expect(page).toHaveURL('/nfts/emerald-ape-042')
+  await expect(
+    page.getByRole('dialog', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
   await submitLogin(page)
   await expect(page).toHaveURL('/nfts/emerald-ape-042')
   const response = page.waitForResponse(

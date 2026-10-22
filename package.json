@@ -22,7 +22,10 @@
     "test:deploy": "playwright test --config playwright.deploy.config.ts",
     "check:commit": "npm run format:check && npm run lint && npm run build && npm run test:e2e && npm run test:deploy",
     "audit:lighthouse": "lighthouse http://127.0.0.1:4173/ --config-path=./lighthouse.config.js --output=html --output=json --output-path=./reports/lighthouse/base",
-    "release:dry-run": "semantic-release --dry-run"
+    "release:dry-run": "semantic-release --dry-run",
+    "test:visual": "playwright test --config playwright.visual.config.ts",
+    "test:visual:update": "playwright test --config playwright.visual.config.ts --update-snapshots=all",
+    "test:visual:report": "playwright show-report reports/visual"
   },
   "dependencies": {
     "@fontsource-variable/roboto-mono": "5.3.0",
