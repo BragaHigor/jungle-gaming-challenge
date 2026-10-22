@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
-import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
 import { PurchaseItems } from '@/components/purchase/PurchaseItems'
 import { OrderSummary } from '@/components/purchase/OrderSummary'
 import { CollectorFields } from '@/components/purchase/CollectorFields'
 import { WalletSelection } from '@/components/purchase/WalletSelection'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { UnavailableAction } from '@/components/shared/UnavailableAction'
+import { useCheckoutOrder } from '@/hooks/useCheckoutOrder'
 import {
   collectorSchema,
   type CollectorDraft,
@@ -27,6 +26,7 @@ export function CheckoutPage({
   quoteReady = false,
   quoteLoading = false,
   quotedNetwork,
+  quoteId,
   onNetworkChange,
 }: {
   items: readonly PurchaseItem[]
@@ -34,27 +34,38 @@ export function CheckoutPage({
   totals?: PurchaseTotals
   quoteReady?: boolean
   quoteLoading?: boolean
+  quoteId?: string
   quotedNetwork?: WalletOption['network']
   onNetworkChange?: (network: WalletOption['network']) => void
 }) {
   const { t } = useTranslation('purchase')
-  const [draft, setDraft] = useState<CollectorDraft>({
-    displayName: '',
-    username: '',
-    network: wallets[0]?.network ?? 'Ethereum',
-    profileName: '',
-    address: wallets[0]?.address ?? '',
-    secondary: '',
-    walletType: wallets[0]?.walletType ?? 'Coinbase Wallet',
-    referral: '',
-    email: '',
-    ens: '',
-    note: '',
-  })
+  const order = useCheckoutOrder()
+  const [reviewedQuote, setReviewedQuote] = useState<string | undefined>()
+  const [draft, setDraft] = useState<CollectorDraft>(
+    order.attempt?.input.collector ?? {
+      displayName: '',
+      username: '',
+      network: wallets[0]?.network ?? 'Ethereum',
+      profileName: '',
+      address: wallets[0]?.address ?? '',
+      secondary: '',
+      walletType: wallets[0]?.walletType ?? 'Coinbase Wallet',
+      referral: '',
+      email: '',
+      ens: '',
+      note: '',
+    },
+  )
   const [errors, setErrors] = useState<CollectorErrors>({})
-  const [selected, setSelected] = useState(wallets[0]?.id ?? '')
-  const lastSelected = useRef(wallets[0]?.id ?? '')
-  const [otherWallet, setOtherWallet] = useState(false)
+  const [selected, setSelected] = useState(
+    order.attempt?.input.walletId ?? wallets[0]?.id ?? '',
+  )
+  const lastSelected = useRef(
+    order.attempt?.input.walletId ?? wallets[0]?.id ?? '',
+  )
+  const [otherWallet, setOtherWallet] = useState(
+    order.attempt?.input.walletId === 'external',
+  )
   const [review, setReview] = useState(false)
   const fields = useRef<HTMLDetailsElement>(null)
   const reviewButton = useRef<HTMLButtonElement>(null)
@@ -123,6 +134,28 @@ export function CheckoutPage({
       walletType: undefined,
     }))
   }
+  const connection = order.connection.data
+  const connected = Boolean(
+    connection?.connected &&
+    !order.disconnect.isPending &&
+    connection.address === draft.address &&
+    connection.network === draft.network &&
+    connection.provider === draft.walletType &&
+    connection.walletId === (otherWallet ? null : selected),
+  )
+  const connect = () =>
+    order.connect({
+      walletId: otherWallet ? null : selected,
+      address: draft.address,
+      network: draft.network,
+      provider: draft.walletType,
+    })
+  const canConfirm =
+    canReview &&
+    connected &&
+    reviewedQuote === quoteId &&
+    !order.attempt &&
+    !order.submission.isPending
   const validationMessage = Object.values(errors).some(Boolean)
     ? t('fixFields')
     : ''
@@ -146,11 +179,32 @@ export function CheckoutPage({
       return
     }
     setErrors({})
+    setReviewedQuote(quoteId)
     setReview(true)
   }
   return (
     <section>
-      <PurchaseHeader checkout />
+      {order.attempt && !review && (
+        <div
+          role="status"
+          className="mb-6 space-y-3 rounded-lg border border-border bg-surface p-4 text-sm"
+        >
+          <p>{t('recoverAttempt')}</p>
+          <Button disabled={order.submission.isPending} onClick={order.recover}>
+            {t('recoverOrder')}
+          </Button>
+          <Button asChild variant="outline">
+            <Link to="/confirmation" search={{ orderId: undefined }}>
+              {t('checkOrders')}
+            </Link>
+          </Button>
+        </div>
+      )}
+      {order.submission.isError && !review && (
+        <p role="alert" className="mb-5 text-sm text-destructive">
+          {t(order.attempt ? 'uncertainOrder' : 'orderChanged')}
+        </p>
+      )}
       {!items.length ? (
         <div className="py-16 text-center">
           <h2 className="mb-6 text-xl">{t('empty')}</h2>
@@ -290,12 +344,85 @@ export function CheckoutPage({
                   </Link>
                 </div>
               )}
-              <UnavailableAction
-                disabled={!canReview}
-                className="min-h-11 rounded-md bg-primary px-5 py-3 font-bold text-primary-foreground"
-              >
-                {t('confirm')}
-              </UnavailableAction>
+              <div className="space-y-3 text-sm">
+                <p role="status">
+                  {t(connected ? 'walletConnected' : 'walletDisconnected')}
+                </p>
+                {order.connection.isError && (
+                  <p role="alert" className="text-destructive">
+                    {t('connectionRefused')}
+                  </p>
+                )}
+                {order.disconnect.isError && (
+                  <p role="alert" className="text-destructive">
+                    {t('disconnectFailed')}
+                  </p>
+                )}
+                {connected ? (
+                  <Button
+                    variant="outline"
+                    disabled={
+                      order.submission.isPending || order.disconnect.isPending
+                    }
+                    onClick={() => order.disconnect.mutate(connection!.id)}
+                  >
+                    {t('disconnectWallet')}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    disabled={
+                      !canReview ||
+                      order.connection.isPending ||
+                      order.submission.isPending ||
+                      Boolean(order.attempt)
+                    }
+                    onClick={connect}
+                  >
+                    {t(
+                      order.connection.isPending
+                        ? 'connectingWallet'
+                        : 'connectWallet',
+                    )}
+                  </Button>
+                )}
+                {reviewedQuote !== quoteId && (
+                  <p role="alert">{t('reviewChanged')}</p>
+                )}
+                <Button
+                  disabled={!canConfirm}
+                  onClick={() => {
+                    if (!canConfirm || !connection || !quoteId) return
+                    order.submit({
+                      quoteId,
+                      walletId: otherWallet ? 'external' : selected,
+                      connectionId: connection.id,
+                      collector: draft,
+                    })
+                  }}
+                >
+                  {t(order.submission.isPending ? 'sendingOrder' : 'confirm')}
+                </Button>
+                {order.submission.isError && (
+                  <p role="alert" className="text-destructive">
+                    {t(order.attempt ? 'uncertainOrder' : 'orderChanged')}
+                  </p>
+                )}
+                {order.attempt && (
+                  <Button
+                    variant="outline"
+                    disabled={order.submission.isPending}
+                    onClick={order.recover}
+                  >
+                    {t('recoverOrder')}
+                  </Button>
+                )}
+                {reviewedQuote !== quoteId && (
+                  <Button variant="outline" onClick={() => setReview(false)}>
+                    {t('reviewAgain')}
+                  </Button>
+                )}
+              </div>
             </DialogContent>
           </Dialog>
         </>

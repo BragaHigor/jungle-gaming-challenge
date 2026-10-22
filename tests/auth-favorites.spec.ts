@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 import { signInFixture, submitLogin } from './helpers/auth'
 import { readMockStorage } from './helpers/storage'
 
@@ -9,6 +9,7 @@ async function request(
   method = 'GET',
   body?: unknown,
 ) {
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ path, method, body }) => {
       const token = sessionStorage.getItem('kurio-session')

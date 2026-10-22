@@ -1,3 +1,4 @@
+import { waitForAppReady } from './navigation'
 import { expect, type Page } from '@playwright/test'
 
 export async function cartRequest(
@@ -7,6 +8,7 @@ export async function cartRequest(
   body?: unknown,
   anonymous = false,
 ) {
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ path, method, body, anonymous }) => {
       const token = anonymous ? null : sessionStorage.getItem('kurio-session')

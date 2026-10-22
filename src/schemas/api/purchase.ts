@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { collectorSchema } from '@/schemas/collector'
 import { ethToWei } from '@/utils/eth'
 import { networks } from '@/constants/catalog'
 import {
@@ -88,6 +89,29 @@ export const quoteSchema = z
 export const orderRequestSchema = z.strictObject({
   quoteId: resourceIdSchema,
   walletId: resourceIdSchema,
+  connectionId: resourceIdSchema,
+  collector: collectorSchema,
+})
+export const connectionRequestSchema = z
+  .strictObject({
+    walletId: resourceIdSchema.nullable(),
+    address: z.string().max(120),
+    network: z.enum(networks),
+    provider: z.enum(['WalletConnect', 'MetaMask', 'Coinbase Wallet']),
+  })
+  .refine(
+    (value) =>
+      (value.network === 'Solana'
+        ? /^[1-9A-HJ-NP-Za-km-z]{32,44}$/
+        : /^0x[0-9a-fA-F]{40}$/
+      ).test(value.address),
+    { path: ['address'] },
+  )
+export const connectionSchema = connectionRequestSchema.safeExtend({
+  id: resourceIdSchema,
+  userId: resourceIdSchema,
+  token: z.string(),
+  connected: z.boolean(),
 })
 export const idempotencyKeySchema = z
   .string()
@@ -105,6 +129,9 @@ export const orderSchema = z
     items: z.array(orderLineSchema).min(1),
     totals: totalsSchema,
     reference: z.string().max(120).nullable(),
+    walletAddress: z.string().default(''),
+    walletProvider: z.string().default(''),
+    collector: collectorSchema.optional(),
     createdAt: z.iso.datetime(),
     updatedAt: z.iso.datetime(),
     version: versionSchema,

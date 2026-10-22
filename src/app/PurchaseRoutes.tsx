@@ -1,3 +1,5 @@
+import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
+import { OrderRecovery } from '@/components/purchase/OrderRecovery'
 import { useState } from 'react'
 import { useCatalogQuery } from '@/hooks/useNftQueries'
 import { Link } from '@tanstack/react-router'
@@ -18,6 +20,15 @@ export function CartRoute() {
 }
 
 export function CheckoutRoute() {
+  return (
+    <>
+      <PurchaseHeader checkout />
+      <CheckoutContent />
+    </>
+  )
+}
+
+function CheckoutContent() {
   const { t } = useTranslation('purchase')
   const { session } = useSession()
   const { query: walletQuery } = useWalletsData()
@@ -60,7 +71,26 @@ export function CheckoutRoute() {
       cart.query.isError ||
       cart.query.data?.stockValid === false,
     )
-  if (!cart.query.data?.lines.length) return <CartPage related={[]} />
+  if (!cart.query.data)
+    return (
+      <AccountState
+        state={cart.query.isError ? 'error' : 'loading'}
+        onRetry={() => void cart.query.refetch()}
+      />
+    )
+  if (!cart.query.data.lines.length)
+    return (
+      <>
+        <OrderRecovery />
+        <section className="py-16 text-center">
+          <h2 className="mb-6 text-xl">{t('empty')}</h2>
+          <Button asChild>
+            <Link to="/">{t('continue')}</Link>
+          </Button>
+        </section>
+      </>
+    )
+
   return (
     <>
       {showCartWarning && (
@@ -92,6 +122,7 @@ export function CheckoutRoute() {
           items={cart.query.data.lines}
           wallets={wallets}
           totals={data?.totals}
+          quoteId={data?.id}
           quotedNetwork={data?.network}
           quoteReady={ready && wallets.length > 0 && !walletQuery.isError}
           quoteLoading={

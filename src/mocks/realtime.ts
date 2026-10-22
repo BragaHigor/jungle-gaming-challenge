@@ -53,7 +53,7 @@ export function closeConnections() {
   }
   clients.clear()
 }
-async function broadcast(event: ResourceEvent) {
+export async function broadcastResource(event: ResourceEvent) {
   const database = await readDatabase()
   for (const client of clients.values()) {
     if (client.generation !== event.generation) continue
@@ -123,5 +123,5 @@ export async function emitResourceEvent(
       data: order,
     })
   })
-  await broadcast(event)
+  await broadcastResource(event)
 }

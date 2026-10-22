@@ -66,8 +66,11 @@ export function OrderResult({
       <div className="space-y-6 px-5 py-7 tablet:px-11">
         <h2 className="text-sm font-bold">{t('orderDetails')}</h2>
         <ul className="space-y-3">
-          {order.items.map(({ nft, quantity }) => (
-            <li key={nft.id} className="flex items-center gap-3">
+          {order.items.map(({ nft, quantity, editionId }) => (
+            <li
+              key={`${nft.id}:${editionId}`}
+              className="flex items-center gap-3"
+            >
               <img
                 src={nft.image}
                 alt={card(nft.imageAltKey)}
@@ -77,6 +80,11 @@ export function OrderResult({
                 <strong className="block">{nft.title}</strong>
                 <span className="text-secondary">
                   {t('token', { token: nft.token })} · ×{quantity}
+                  {editionId && (
+                    <span className="block">
+                      {t('edition', { edition: editionId })}
+                    </span>
+                  )}
                 </span>
               </div>
               <strong className="text-xs text-primary">
