@@ -1,3 +1,4 @@
+import { AccountLink } from '@/components/account/AccountLink'
 import { FavoritesDialog } from '@/components/account/FavoritesDialog'
 import { Link, useLocation } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
@@ -47,13 +48,13 @@ export function MobileNavigation() {
           className="bottom-menu-trigger grid min-h-14 place-items-center"
         />
       ) : (
-        <Link
+        <AccountLink
           className="grid min-h-14 place-items-center"
           to="/profile"
           aria-label={t('account')}
         >
           <Icon name="user" />
-        </Link>
+        </AccountLink>
       )}
     </nav>
   )

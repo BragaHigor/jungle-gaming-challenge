@@ -1,3 +1,4 @@
+import { AccountLink } from '@/components/account/AccountLink'
 import { FavoritesDialog } from '@/components/account/FavoritesDialog'
 import { useSession } from '@/hooks/useSession'
 import { cn } from '@/utils/cn'
@@ -85,13 +86,13 @@ export function Header() {
             asChild
             className="header-login max-desktop:hidden min-h-9 shrink-0 whitespace-nowrap px-3 font-medium"
           >
-            <Link
+            <AccountLink
               to={session ? '/profile' : '/login'}
               aria-label={session ? t('profile') : t('signIn')}
             >
               <Icon name="login" className="size-5" />
               {session ? t('profile') : t('signIn')}
-            </Link>
+            </AccountLink>
           </Button>
           <NavigationMenu className="icon-button inline-grid place-items-center w-11 h-11 rounded-md text-inherit hover:text-primary-hover disabled:opacity-55 mobile-menu-trigger desktop:hidden max-desktop:inline-grid" />
         </div>

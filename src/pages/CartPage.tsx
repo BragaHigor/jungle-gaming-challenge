@@ -1,3 +1,4 @@
+import { AccountLink } from '@/components/account/AccountLink'
 import { Link } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
@@ -150,7 +151,7 @@ export function CartPage({ related }: { related: readonly CatalogNft[] }) {
               {unavailable ? (
                 <span>{t('checkout')}</span>
               ) : (
-                <Link to="/checkout">{t('checkout')}</Link>
+                <AccountLink to="/checkout">{t('checkout')}</AccountLink>
               )}
             </Button>
             <Link

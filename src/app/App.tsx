@@ -1,3 +1,5 @@
+import { AuthDialogProvider } from './AuthDialogProvider'
+import { DemoBanner } from '@/components/demo/DemoBanner'
 import { RealtimeFeedback } from '@/components/shared/RealtimeFeedback'
 import { useEffect } from 'react'
 import { CartProvider } from './CartProvider'
@@ -65,6 +67,7 @@ function AppContent() {
         tabIndex={-1}
         className="page-container w-full max-w-[calc(var(--content-width)_+_var(--page-gutter)_*_2)] ml-auto mr-auto pl-[var(--page-gutter)] pr-[var(--page-gutter)] page-content mt-8"
       >
+        {!['/login', '/register'].includes(pathname) && <DemoBanner />}
         <Outlet />
       </main>
       <Footer />
@@ -79,7 +82,9 @@ export function App() {
       <FavoritesProvider>
         <CartProvider>
           <DemoProvider>
-            <AppContent />
+            <AuthDialogProvider>
+              <AppContent />
+            </AuthDialogProvider>
           </DemoProvider>
         </CartProvider>
       </FavoritesProvider>

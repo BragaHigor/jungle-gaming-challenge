@@ -404,3 +404,23 @@ test('um avatar inválido não mantém mensagem de salvamento nem substitui a im
     page.getByRole('button', { name: 'Salvar', exact: true }),
   ).toBeEnabled()
 })
+
+test('identifica a carteira pelo endereço quando o apelido repete o título', async ({
+  page,
+  isMobile,
+}) => {
+  await visitWithAccount(page, '/checkout')
+  if (isMobile) {
+    const primary = page.getByRole('radio', { name: /^Principal/ })
+    await expect(primary).toHaveAccessibleName(/Principal 0xA91F…E82C/)
+    await expect(primary).not.toHaveAccessibleName(/Principal Principal/)
+    return
+  }
+  const wallets = page.getByRole('combobox', {
+    name: 'Carteiras disponíveis',
+    exact: true,
+  })
+  await expect(
+    wallets.locator('option').filter({ hasText: /^Principal/ }),
+  ).toHaveText('Principal · 0xA91F…E82C')
+})

@@ -1,3 +1,4 @@
+import { AccountLink } from '@/components/account/AccountLink'
 import { DemoControls } from '@/components/demo/DemoControls'
 import { useSession } from '@/hooks/useSession'
 import { useState } from 'react'
@@ -55,27 +56,27 @@ export function NavigationMenu({
           <UnavailableAction className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold">
             {t('learn')}
           </UnavailableAction>
-          <Link
+          <AccountLink
             to={session ? '/profile' : '/login'}
             className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold"
             onClick={() => setMenuOpen(false)}
           >
             {session ? session.user.username : t('signIn')}
-          </Link>
-          <Link
+          </AccountLink>
+          <AccountLink
             to="/profile"
             className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold"
             onClick={() => setMenuOpen(false)}
           >
             {t('account')}
-          </Link>
-          <Link
+          </AccountLink>
+          <AccountLink
             to="/wallets"
             className="nav-link flex items-center min-h-[2.8125rem] pl-3 pr-3 text-[1rem] whitespace-nowrap border-b-3 border-b-transparent text-foreground hover:text-primary-hover [&.is-active]:text-primary-hover [&.is-active]:border-primary [&.is-active]:font-bold"
             onClick={() => setMenuOpen(false)}
           >
             {t('wallets')}
-          </Link>
+          </AccountLink>
           {session && (
             <button
               type="button"

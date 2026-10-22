@@ -3,6 +3,44 @@
 @import './tokens.css';
 
 @layer base {
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: var(--surface);
+  }
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid var(--surface);
+    border-radius: 999px;
+    background: var(--primary);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover);
+  }
+  *::-webkit-scrollbar-corner {
+    background: var(--surface);
+  }
+  @supports not selector(::-webkit-scrollbar) {
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: var(--primary) var(--surface);
+    }
+  }
+  @media (forced-colors: active) {
+    * {
+      scrollbar-color: auto;
+    }
+    *::-webkit-scrollbar-thumb {
+      border-color: Canvas;
+      background: CanvasText;
+    }
+    *::-webkit-scrollbar-track,
+    *::-webkit-scrollbar-corner {
+      background: Canvas;
+    }
+  }
+
   html {
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;

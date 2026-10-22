@@ -1,11 +1,12 @@
+import { useAuthDialog } from '@/hooks/useAuthDialog'
+import { DemoBanner } from '@/components/demo/DemoBanner'
 import { useState, type ReactNode } from 'react'
-import { useLocation, useNavigate, Link } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getNft } from '@/api/catalog'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useSession } from '@/hooks/useSession'
-import { safeReturn } from '@/services/session'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { FavoriteButton } from './FavoriteButton'
@@ -65,29 +66,27 @@ function FavoriteItem({
 }
 
 export function FavoritesDialog({
+  autoOpen = false,
   children,
   className,
   label,
 }: {
+  autoOpen?: boolean
   children: ReactNode
   className?: string
   label: string
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(autoOpen)
   const { t } = useTranslation(['card', 'navigation'])
   const { session } = useSession()
   const { query, mutation } = useFavorites()
-  const navigate = useNavigate()
-  const { href } = useLocation()
+  const { openAuth } = useAuthDialog()
   return (
     <Dialog
       open={open}
       onOpenChange={(next) => {
         if (next && !session) {
-          void navigate({
-            to: '/login',
-            search: { redirect: safeReturn(href) },
-          })
+          openAuth()
           return
         }
         setOpen(next)
@@ -102,6 +101,7 @@ export function FavoritesDialog({
         title={t('navigation:favorites')}
         description={session?.user.username ?? ''}
       >
+        <DemoBanner />
         {query.isPending && <p role="status">{t('card:favoritesLoading')}</p>}
         {query.isError && (
           <>

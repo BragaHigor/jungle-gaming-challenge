@@ -1,3 +1,5 @@
+import { useContext } from 'react'
+import { DemoContext } from '@/hooks/useDemo'
 import { FavoritesDialog } from './FavoritesDialog'
 import { useSession } from '@/hooks/useSession'
 import { DemoControls } from '@/components/demo/DemoControls'
@@ -8,10 +10,9 @@ import { UnavailableAction } from '@/components/shared/UnavailableAction'
 import { Icon } from '@/components/ui/Icon'
 
 const auxiliaryLinks = [
-  { key: 'activity', icon: 'cart' },
-  { key: 'offers', icon: 'scan' },
-  { key: 'downloads', icon: 'down' },
-  { key: 'support', icon: 'user' },
+  { key: 'offers', icon: 'offer' },
+  { key: 'downloads', icon: 'download' },
+  { key: 'support', icon: 'support' },
 ] as const
 const linkClass =
   'flex min-h-11 w-full items-center gap-3 border-l-[6px] border-transparent px-3 py-2 text-left text-sm text-primary hover:bg-surface-raised aria-[current=page]:border-primary max-tablet:w-auto max-tablet:shrink-0 max-tablet:border-l-0 max-tablet:border-b-2 max-tablet:whitespace-nowrap'
@@ -25,6 +26,7 @@ export function AccountLayout({
 }) {
   const { t } = useTranslation('account')
   const { endSession } = useSession()
+  const demo = useContext(DemoContext)
   const activeProfile = page === 'profile' ? 'page' : undefined
   const activeWallets = page === 'wallets' ? 'page' : undefined
   return (
@@ -51,7 +53,15 @@ export function AccountLayout({
             <Icon name="scan" className="size-5 shrink-0" />
             {t('walletsTitle')}
           </Link>
-          <FavoritesDialog label={t('wishlist')} className={linkClass}>
+          <UnavailableAction className={linkClass}>
+            <Icon name="cart" className="size-5 shrink-0" />
+            {t('activity')}
+          </UnavailableAction>
+          <FavoritesDialog
+            autoOpen={demo?.guided?.scenario === 'favorites-ready'}
+            label={t('wishlist')}
+            className={linkClass}
+          >
             <Icon name="heart" className="size-5 shrink-0" />
             {t('wishlist')}
           </FavoritesDialog>

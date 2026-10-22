@@ -142,7 +142,7 @@ test.describe('Visual do fluxo de compra', () => {
     else
       await page
         .getByRole('combobox', { name: 'Carteiras disponíveis', exact: true })
-        .selectOption({ label: 'Principal · Principal' })
+        .selectOption({ label: 'Principal · 0xA91F…E82C' })
     await page
       .getByRole('textbox', { name: 'Código de indicação', exact: true })
       .fill('KURIO')

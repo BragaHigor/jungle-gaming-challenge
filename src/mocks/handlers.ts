@@ -1,3 +1,4 @@
+import { prepareGuidedDemo } from './guided-demo'
 import { orderHandlers } from './order-handlers'
 import { accountHandlers } from './account-handlers'
 import { currentCart } from './cart'
@@ -59,6 +60,15 @@ const privateReads = [
   ),
 ]
 export const handlers = [
+  http.post('/api/demo/start', ({ request }) =>
+    respond(async () => {
+      const { scenario } = parseInput(
+        demoRequestSchema,
+        await jsonBody(request),
+      )
+      return json(await prepareGuidedDemo(scenario))
+    }),
+  ),
   http.get('/api/demo', ({ request }) =>
     respond(async () =>
       json(
