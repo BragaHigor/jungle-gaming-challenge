@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useCart, useCartQuote } from '@/hooks/useCart'
 import { CartPage } from '@/pages/CartPage'
 import { CheckoutPage } from '@/pages/CheckoutPage'
-import { useWalletsData } from '@/hooks/useAccountData'
+import { useProfileData, useWalletsData } from '@/hooks/useAccountData'
 import { useSession } from '@/hooks/useSession'
 import { QueryFeedback } from '@/components/shared/QueryFeedback'
 import { AccountState } from '@/components/account/AccountState'
@@ -33,6 +33,8 @@ function CheckoutContent() {
   const { t } = useTranslation('purchase')
   const { session } = useSession()
   const { query: walletQuery } = useWalletsData()
+  const { query: profileQuery } = useProfileData()
+  const profile = profileQuery.data ?? session?.user
   const primary = walletQuery.data?.find((wallet) => wallet.primary)
   const wallets: WalletOption[] = (walletQuery.data ?? [])
     .filter((wallet) => wallet.primary || !primary?.sameAsPrimary)
@@ -43,6 +45,7 @@ function CheckoutContent() {
       address: wallet.draft.address,
       network: wallet.draft.network,
       walletType: wallet.draft.walletType,
+      collector: wallet.draft,
     }))
   const { synchronizing } = useRealtimeStatus()
   const cart = useCart()
@@ -105,6 +108,7 @@ function CheckoutContent() {
         </div>
       )}
       <QueryFeedback query={walletQuery} resource="account" />
+      <QueryFeedback query={profileQuery} resource="account" />
       {!walletQuery.data && (
         <AccountState
           state={walletQuery.isError ? 'error' : 'loading'}
@@ -119,11 +123,23 @@ function CheckoutContent() {
           </Link>
         </p>
       )}
-      {walletQuery.data && (
+      {walletQuery.data && !profileQuery.isFetched && (
+        <AccountState
+          state="loading"
+          onRetry={() => void profileQuery.refetch()}
+        />
+      )}
+      {walletQuery.data && profileQuery.isFetched && (
         <CheckoutPage
           key={session?.token}
           items={cart.query.data.lines}
           wallets={wallets}
+          collectorDefaults={{
+            displayName: profile?.displayName,
+            username: profile?.username,
+            email: profile?.email,
+            ens: profileQuery.data?.ens,
+          }}
           totals={data?.totals}
           quoteId={data?.id}
           quotedNetwork={data?.network}
