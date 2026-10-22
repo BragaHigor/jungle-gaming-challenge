@@ -1,8 +1,11 @@
-import { useState, type ReactNode } from 'react'
+import { lazy, Suspense, useState, type ReactNode } from 'react'
 import { useLocation } from '@tanstack/react-router'
 import { AuthDialogContext, type AuthMode } from '@/hooks/useAuthDialog'
-import { AuthPage } from '@/pages/AuthPage'
 import { safeReturn } from '@/services/session'
+
+const AuthPage = lazy(() =>
+  import('@/pages/AuthPage').then((module) => ({ default: module.AuthPage })),
+)
 
 type AuthDialogState = {
   mode: AuthMode
@@ -27,22 +30,26 @@ export function AuthDialogProvider({ children }: { children: ReactNode }) {
     <AuthDialogContext.Provider value={{ openAuth }}>
       {children}
       {dialog && dialog.origin === href && (
-        <AuthPage
-          key={dialog.mode}
-          mode={dialog.mode}
-          returnTo={dialog.returnTo}
-          showBackground={false}
-          onClose={() => setDialog(null)}
-          onSwitchMode={(mode) => setDialog({ ...dialog, mode })}
-          onRestoreFocus={() => {
-            if (document.querySelector('[role="dialog"][data-state="open"]'))
-              return
-            if (dialog.trigger?.isConnected)
-              dialog.trigger.focus({ preventScroll: true })
-            else
-              document.getElementById('content')?.focus({ preventScroll: true })
-          }}
-        />
+        <Suspense>
+          <AuthPage
+            key={dialog.mode}
+            mode={dialog.mode}
+            returnTo={dialog.returnTo}
+            showBackground={false}
+            onClose={() => setDialog(null)}
+            onSwitchMode={(mode) => setDialog({ ...dialog, mode })}
+            onRestoreFocus={() => {
+              if (document.querySelector('[role="dialog"][data-state="open"]'))
+                return
+              if (dialog.trigger?.isConnected)
+                dialog.trigger.focus({ preventScroll: true })
+              else
+                document
+                  .getElementById('content')
+                  ?.focus({ preventScroll: true })
+            }}
+          />
+        </Suspense>
       )}
     </AuthDialogContext.Provider>
   )

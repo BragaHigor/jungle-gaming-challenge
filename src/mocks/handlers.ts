@@ -30,7 +30,7 @@ import {
 } from './realtime'
 import { listNfts } from './catalog'
 import { failure, jsonBody, MockError, parseInput, respond } from './responses'
-import { scenarioResponse } from './scenarios'
+import { readScenario, scenarioResponse } from './scenarios'
 import { login, register, requireUser } from './auth'
 import { delay } from 'msw'
 
@@ -228,23 +228,26 @@ export const handlers = [
   ),
   http.get('/api/nfts', ({ request }) =>
     respond(async () => {
-      const fault = await scenarioResponse(request)
+      const { database, response: fault } = await readScenario(request)
       if (fault) return fault
-      if ((await readDatabase()).scenario === 'malformed-response')
+      if (database.scenario === 'malformed-response')
         return json({ items: [], total: 'invalid', page: 1, pageSize: 9 })
       return json(
-        parseInput(catalogResponseSchema, await listNfts(new URL(request.url))),
+        parseInput(
+          catalogResponseSchema,
+          listNfts(new URL(request.url), database),
+        ),
       )
     }),
   ),
   http.get('/api/nfts/:id', ({ request, params }) =>
     respond(async () => {
-      const fault = await scenarioResponse(request)
+      const { database, response: fault } = await readScenario(request)
       if (fault) return fault
-      if ((await readDatabase()).scenario === 'malformed-response')
+      if (database.scenario === 'malformed-response')
         return json({ id: params.id, price: 1 })
       const id = parseInput(resourceIdSchema, params.id)
-      const nft = (await readDatabase()).nfts.find((value) => value.id === id)
+      const nft = database.nfts.find((value) => value.id === id)
       if (!nft) return failure('NOT_FOUND', 404)
       return json(parseInput(nftSchema, nft))
     }),

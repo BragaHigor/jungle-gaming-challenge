@@ -3,20 +3,13 @@ import {
   createRoute,
   createRouter,
   redirect,
+  lazyRouteComponent,
 } from '@tanstack/react-router'
 import { SessionError } from '@/components/account/SessionError'
 import { App } from './App'
 import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
-import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
-import { ConfirmationPage } from '@/pages/ConfirmationPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import {
-  LoginRoute,
-  RegistrationRoute,
-  ProfileRoute,
-  WalletsRoute,
-} from './AccountRoutes'
 import { queryClient } from './query-client'
 import { sessionOptions, safeReturn, readToken } from '@/services/session'
 import { authSearchSchema } from '@/schemas/account'
@@ -64,13 +57,19 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/cart',
-      component: CartRoute,
+      component: lazyRouteComponent(
+        () => import('./PurchaseRoutes'),
+        'CartRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/checkout',
       beforeLoad: requireAccount,
-      component: CheckoutRoute,
+      component: lazyRouteComponent(
+        () => import('./PurchaseRoutes'),
+        'CheckoutRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
@@ -83,33 +82,48 @@ export const router = createRouter({
             : undefined,
       }),
       beforeLoad: requireAccount,
-      component: ConfirmationPage,
+      component: lazyRouteComponent(
+        () => import('@/pages/ConfirmationPage'),
+        'ConfirmationPage',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/login',
       validateSearch: (search) => authSearchSchema.parse(search),
-      component: LoginRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'LoginRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/register',
       validateSearch: (search) => authSearchSchema.parse(search),
-      component: RegistrationRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'RegistrationRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/profile',
       beforeLoad: requireAccount,
       validateSearch: () => ({}),
-      component: ProfileRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'ProfileRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/wallets',
       beforeLoad: requireAccount,
       validateSearch: () => ({}),
-      component: WalletsRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'WalletsRoute',
+      ),
     }),
   ]),
 })

@@ -140,9 +140,10 @@ export function HomePage() {
             ) : (
               <>
                 <NftGrid className="catalog-grid" aria-busy={result.isFetching}>
-                  {controls.visible.map((card) => (
+                  {controls.visible.map((card, index) => (
                     <NftCard
                       key={card.id}
+                      priority={index < 3}
                       nft={{ ...card, imageAlt: t(`card:${card.imageAltKey}`) }}
                     />
                   ))}

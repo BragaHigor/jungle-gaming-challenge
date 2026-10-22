@@ -104,7 +104,7 @@ export function subscribeToEvents({
   })
   return {
     reconnect: () => {
-      if (active()) connection?.connect()
+      if (active()) connection?.disconnect().connect()
     },
     dispose: () => {
       disposed = true
