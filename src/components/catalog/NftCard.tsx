@@ -8,9 +8,11 @@ import { Skeleton } from '@/components/ui/skeleton'
 export function NftCard({
   nft,
   compact = false,
+  priority = false,
 }: {
   nft: NftCardData
   compact?: boolean
+  priority?: boolean
 }) {
   const { t } = useTranslation('card')
   return (
@@ -33,7 +35,8 @@ export function NftCard({
             alt={nft.imageAlt}
             width="512"
             height="512"
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
             decoding="async"
           />
         </Link>

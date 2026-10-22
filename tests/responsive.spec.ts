@@ -69,11 +69,19 @@ test.describe('Revisão visual e responsividade', () => {
   test('apresenta skeleton próprio do detalhe, preserva navegação e respeita movimento reduzido', async ({
     page,
   }) => {
+    await page.clock.install()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await visit(page, '/')
     await setScenario(page, 'slow')
-    await visit(page, '/nfts/emerald-ape-042')
+    await visit(page, '/')
+    await expect(page.locator('.catalog-grid article')).toHaveCount(9)
+    const now = await page.evaluate(() => Date.now())
+    await page.clock.pauseAt(now + 1000)
+    await page
+      .getByRole('link', { name: 'Ver Emerald Ape #042', exact: true })
+      .click()
+    await expect(page).toHaveURL('/nfts/emerald-ape-042')
     await expect(page.getByRole('status')).toHaveText('Carregando NFT…')
     await expect(page.locator('.nft-detail-loading')).toHaveAttribute(
       'aria-busy',
@@ -95,6 +103,7 @@ test.describe('Revisão visual e responsividade', () => {
           (element) => getComputedStyle(element, '::after').animationName,
         ),
     ).toBe('none')
+    await page.clock.resume()
     await page.getByRole('link', { name: 'Back to catalog' }).click()
     await expect(page).toHaveURL('/')
   })
