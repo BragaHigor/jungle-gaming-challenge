@@ -201,6 +201,7 @@ test('timeout após criação recupera o mesmo pedido após refresh', async ({
   page,
 }) => {
   await setup(page, 'order-timeout')
+  await cartRequest(page, '/demo/connection', 'POST', { action: 'disconnect' })
   const review = await fillCollector(page)
   await review
     .getByRole('button', { name: 'Conectar carteira simulada', exact: true })
@@ -209,7 +210,7 @@ test('timeout após criação recupera o mesmo pedido após refresh', async ({
     .getByRole('button', { name: 'Confirmar compra', exact: true })
     .click()
   await expect(
-    review.getByRole('button', { name: 'Recuperar pedido', exact: true }),
+    page.getByRole('button', { name: 'Recuperar pedido', exact: true }),
   ).toBeEnabled({ timeout: 10000 })
   await page.reload()
   await page
@@ -512,6 +513,7 @@ test('recupera falha de consulta do último pedido sem ID e sem reenviar a compr
       exact: true,
     }),
   ).toBeVisible()
+  await cartRequest(page, '/demo/connection', 'POST', { action: 'disconnect' })
   await cartRequest(page, '/demo/reset', 'POST', {
     scenario: 'order-read-failure',
   })

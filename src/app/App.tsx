@@ -1,3 +1,4 @@
+import { RealtimeFeedback } from '@/components/shared/RealtimeFeedback'
 import { useEffect } from 'react'
 import { CartProvider } from './CartProvider'
 import { SessionProvider } from './SessionProvider'
@@ -56,6 +57,9 @@ function AppContent() {
         {t('skipToContent')}
       </a>
       <Header />
+      {['/cart', '/checkout', '/confirmation'].includes(pathname) && (
+        <RealtimeFeedback />
+      )}
       <main
         id="content"
         tabIndex={-1}

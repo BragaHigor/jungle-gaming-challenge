@@ -1,3 +1,4 @@
+import { useRealtimeStatus } from './useDemo'
 import { readOrderAttempt, saveOrderAttempt } from '@/services/order-attempt'
 import { useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -6,6 +7,8 @@ import { useSession } from './useSession'
 export function useOrder(id?: string) {
   const { session } = useSession()
   const cache = useQueryClient()
+  const { connected } = useRealtimeStatus()
+  const pendingInterval = connected ? 3000 : 800
   const token = session?.token
   const userId = session?.user.id
   const orders = useQuery({
@@ -23,7 +26,7 @@ export function useOrder(id?: string) {
     retry: false,
     gcTime: 0,
     refetchInterval: (query) =>
-      query.state.data?.status === 'pending' ? 800 : false,
+      query.state.data?.status === 'pending' ? pendingInterval : false,
     refetchOnReconnect: 'always',
   })
   const currentOrder = query.data

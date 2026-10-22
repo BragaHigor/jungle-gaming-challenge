@@ -337,7 +337,9 @@
     "reviewAgain": "Review again",
     "sendingOrder": "Submitting order…",
     "orderReadError": "Could not retrieve this order. Try again; no new purchase will be created.",
-    "loadingOrder": "Loading order"
+    "loadingOrder": "Loading order",
+    "updatingLive": "Updating prices and availability…",
+    "connectionInterrupted": "Live updates are unavailable. Your data will be synchronized when the connection returns."
   },
   "account": {
     "preferenceSavedDraft": "Usage preference saved. Form changes have not been saved yet.",
@@ -548,7 +550,21 @@
     "scenario_connection-refused": "Wallet connection declined",
     "effect_connection-refused": "The simulated connection is declined without creating an order.",
     "scenario_order-read-failure": "Order retrieval failure",
-    "effect_order-read-failure": "Order retrieval fails without deleting data. Apply Confirmed payment and retry the query."
+    "effect_order-read-failure": "Order retrieval fails without deleting data. Apply Confirmed payment and retry the query.",
+    "interruptConnection": "Interrupt connection",
+    "resumeConnection": "Reconnect",
+    "reconciling": "Synchronizing data with the API…",
+    "eventMode": "Event mode",
+    "eventMode_normal": "Normal update",
+    "eventMode_duplicate": "Duplicate event",
+    "eventMode_stale": "Old event",
+    "eventMode_malformed": "Invalid event",
+    "eventMode_foreign": "Another account event",
+    "eventMode_wrong-generation": "Event before reset",
+    "confirmPayment": "Confirm simulated payment",
+    "declinePayment": "Decline simulated payment",
+    "ignoredEvent_one": "{{count}} outdated or repeated event discarded",
+    "ignoredEvent_other": "{{count}} outdated or repeated events discarded"
   },
   "examples": {
     "displayName": "e.g.: Alex Silva",

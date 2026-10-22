@@ -1,3 +1,4 @@
+import { useRealtimeStatus } from '@/hooks/useDemo'
 import { PurchaseHeader } from '@/components/purchase/PurchaseHeader'
 import { OrderRecovery } from '@/components/purchase/OrderRecovery'
 import { useState } from 'react'
@@ -43,6 +44,7 @@ function CheckoutContent() {
       network: wallet.draft.network,
       walletType: wallet.draft.walletType,
     }))
+  const { synchronizing } = useRealtimeStatus()
   const cart = useCart()
   const [selectedNetwork, setSelectedNetwork] = useState<
     WalletOption['network'] | null
@@ -53,6 +55,7 @@ function CheckoutContent() {
   const data = quote.query.data
   const ready = Boolean(
     data &&
+    !synchronizing &&
     !quote.expired &&
     !cart.mutation.isPending &&
     !cart.query.isFetching &&

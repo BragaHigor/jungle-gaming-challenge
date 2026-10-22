@@ -43,6 +43,22 @@ export const scenarioSchema = z.enum(scenarios)
 export const demoRequestSchema = z.strictObject({ scenario: scenarioSchema })
 export const demoEventRequestSchema = z.strictObject({
   type: z.enum(['nft.updated', 'order.updated']),
+  mode: z
+    .enum([
+      'normal',
+      'duplicate',
+      'stale',
+      'malformed',
+      'foreign',
+      'wrong-generation',
+    ])
+    .default('normal'),
+  outcome: z.enum(['confirmed', 'declined']).optional(),
+  resourceId: resourceIdSchema.optional(),
+})
+export type DemoEventInput = z.input<typeof demoEventRequestSchema>
+export const demoConnectionSchema = z.strictObject({
+  action: z.enum(['disconnect', 'reconnect']),
 })
 export const demoStatusSchema = z.strictObject({
   scenario: scenarioSchema,

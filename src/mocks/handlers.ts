@@ -4,7 +4,11 @@ import { currentCart } from './cart'
 import { cartHandlers } from './cart-handlers'
 import { http, HttpResponse } from 'msw'
 import { catalogResponseSchema, nftSchema } from '@/schemas/api/catalog'
-import { demoRequestSchema, demoEventRequestSchema } from '@/schemas/demo'
+import {
+  demoRequestSchema,
+  demoEventRequestSchema,
+  demoConnectionSchema,
+} from '@/schemas/demo'
 import { resourceIdSchema } from '@/schemas/api/common'
 import {
   loginRequestSchema,
@@ -17,7 +21,12 @@ import {
   resetDatabase,
   updateDatabase,
 } from './database'
-import { closeConnections, emitResourceEvent } from './realtime'
+import {
+  closeConnections,
+  emitResourceEvent,
+  changeConnection,
+  releasePendingOrders,
+} from './realtime'
 import { listNfts } from './catalog'
 import { failure, jsonBody, MockError, parseInput, respond } from './responses'
 import { scenarioResponse } from './scenarios'
@@ -79,6 +88,7 @@ export const handlers = [
           database.orderFaults[user.id] =
             faults[scenario as keyof typeof faults]
         })
+        if (scenario === 'order-confirmed') await releasePendingOrders(request)
         return json(
           await getDemoStatus(
             request.headers.get('Authorization')?.replace(/^Bearer /, ''),
@@ -189,13 +199,20 @@ export const handlers = [
       return json(status)
     }),
   ),
-  http.post('/api/demo/events', ({ request }) =>
+  http.post('/api/demo/connection', ({ request }) =>
     respond(async () => {
-      const { type } = parseInput(
-        demoEventRequestSchema,
+      const { action } = parseInput(
+        demoConnectionSchema,
         await jsonBody(request),
       )
-      await emitResourceEvent(type, request)
+      await changeConnection(request, action)
+      return json({ action })
+    }),
+  ),
+  http.post('/api/demo/events', ({ request }) =>
+    respond(async () => {
+      const input = parseInput(demoEventRequestSchema, await jsonBody(request))
+      await emitResourceEvent(input.type, request, undefined, input)
       return json({ emitted: true })
     }),
   ),
