@@ -1,4 +1,5 @@
 import type { CatalogNft } from './catalog'
+import type { CollectorDraft } from '@/schemas/collector'
 
 export type PurchaseItem = {
   nft: CatalogNft
@@ -24,6 +25,7 @@ export type OrderSnapshot = {
 }
 
 export type WalletOption = {
+  collector?: Partial<CollectorDraft>
   id: string
   name: 'reserve' | 'primary'
   walletType?: 'WalletConnect' | 'MetaMask' | 'Coinbase Wallet'

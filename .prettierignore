@@ -7,3 +7,4 @@ reports/
 package-lock.json
 public/mockServiceWorker.js
 .husky/_/
+docs/evidence/

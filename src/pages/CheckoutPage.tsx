@@ -8,6 +8,7 @@ import { WalletSelection } from '@/components/purchase/WalletSelection'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { useCheckoutOrder } from '@/hooks/useCheckoutOrder'
+import { collectorDraft } from '@/utils/collector'
 import {
   collectorSchema,
   type CollectorDraft,
@@ -22,6 +23,7 @@ import type {
 export function CheckoutPage({
   items,
   wallets,
+  collectorDefaults,
   totals,
   quoteReady = false,
   quoteLoading = false,
@@ -31,6 +33,7 @@ export function CheckoutPage({
 }: {
   items: readonly PurchaseItem[]
   wallets: readonly WalletOption[]
+  collectorDefaults?: Partial<CollectorDraft>
   totals?: PurchaseTotals
   quoteReady?: boolean
   quoteLoading?: boolean
@@ -42,20 +45,11 @@ export function CheckoutPage({
   const order = useCheckoutOrder()
   const [reviewedQuote, setReviewedQuote] = useState<string | undefined>()
   const [draft, setDraft] = useState<CollectorDraft>(
-    order.attempt?.input.collector ?? {
-      displayName: '',
-      username: '',
-      network: wallets[0]?.network ?? 'Ethereum',
-      profileName: '',
-      address: wallets[0]?.address ?? '',
-      secondary: '',
-      walletType: wallets[0]?.walletType ?? 'Coinbase Wallet',
-      referral: '',
-      email: '',
-      ens: '',
-      note: '',
-    },
+    () =>
+      order.attempt?.input.collector ??
+      collectorDraft(wallets[0], collectorDefaults),
   )
+  const editedFields = useRef(new Set<keyof CollectorDraft>())
   const [errors, setErrors] = useState<CollectorErrors>({})
   const [selected, setSelected] = useState(
     order.attempt?.input.walletId ?? wallets[0]?.id ?? '',
@@ -84,12 +78,31 @@ export function CheckoutPage({
     onNetworkChange?.(draft.network)
   }, [draft.network, onNetworkChange])
   function change(key: keyof CollectorDraft, value: string) {
+    editedFields.current.add(key)
     if (key === 'address' || key === 'network') {
       setSelected('')
       setOtherWallet(true)
     }
     setDraft((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
+  }
+  function selectWalletDraft(current: CollectorDraft, wallet: WalletOption) {
+    const saved = collectorDraft(wallet, collectorDefaults)
+    const next = { ...current }
+    for (const key of [
+      'profileName',
+      'secondary',
+      'referral',
+      'ens',
+    ] as const) {
+      if (!editedFields.current.has(key)) next[key] = saved[key]
+    }
+    return {
+      ...next,
+      address: wallet.address,
+      network: wallet.network,
+      walletType: wallet.walletType ?? current.walletType,
+    }
   }
   const handleOtherWalletChange = (checked: boolean) => {
     setOtherWallet(checked)
@@ -102,12 +115,9 @@ export function CheckoutPage({
     const defaultWallet =
       wallets.find((wallet) => wallet.id === lastSelected.current) ?? wallets[0]
     setSelected(defaultWallet?.id ?? '')
-    setDraft((current) => ({
-      ...current,
-      address: defaultWallet?.address ?? '',
-      network: defaultWallet?.network ?? 'Ethereum',
-      walletType: defaultWallet?.walletType ?? current.walletType,
-    }))
+    setDraft((current) =>
+      defaultWallet ? selectWalletDraft(current, defaultWallet) : current,
+    )
     setErrors((current) => ({
       ...current,
       address: undefined,
@@ -121,12 +131,7 @@ export function CheckoutPage({
     setSelected(id)
     lastSelected.current = id
     setOtherWallet(false)
-    setDraft((current) => ({
-      ...current,
-      address: wallet.address,
-      network: wallet.network,
-      walletType: wallet.walletType ?? current.walletType,
-    }))
+    setDraft((current) => selectWalletDraft(current, wallet))
     setErrors((current) => ({
       ...current,
       address: undefined,
