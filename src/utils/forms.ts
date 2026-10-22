@@ -19,3 +19,13 @@ export const getAccountErrors = (
   }
   return errors
 }
+
+export const remoteAccountErrors = (
+  fields: Record<string, string> = {},
+): AccountErrors =>
+  getAccountErrors(
+    Object.entries(fields).map(([field, message]) => ({
+      path: [field],
+      message,
+    })),
+  )

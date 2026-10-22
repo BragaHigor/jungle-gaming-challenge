@@ -1,11 +1,10 @@
+import { useAuthDialog } from '@/hooks/useAuthDialog'
 import { useState, type ReactNode } from 'react'
 import { cn } from '@/utils/cn'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useFavorites } from '@/hooks/useFavorites'
 import { useSession } from '@/hooks/useSession'
 import { Icon } from '@/components/ui/Icon'
-import { safeReturn } from '@/services/session'
 
 const feedbackAnimations = {
   add: 'motion-safe:animate-favorite-add',
@@ -29,8 +28,7 @@ export function FavoriteButton({
   >(null)
   const { session, recovering } = useSession()
   const { query, mutation } = useFavorites()
-  const { href } = useLocation()
-  const navigate = useNavigate()
+  const { openAuth } = useAuthDialog()
   const favorite = query.data?.nftIds.includes(nftId) ?? false
   return (
     <>
@@ -44,10 +42,7 @@ export function FavoriteButton({
         }
         onClick={() => {
           if (!session) {
-            void navigate({
-              to: '/login',
-              search: { redirect: safeReturn(href) },
-            })
+            openAuth()
             return
           }
           setFeedback(favorite ? 'remove' : 'add')

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 import { signInFixture, submitLogin } from './helpers/auth'
 import { readMockStorage } from './helpers/storage'
 
@@ -9,6 +9,7 @@ async function request(
   method = 'GET',
   body?: unknown,
 ) {
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ path, method, body }) => {
       const token = sessionStorage.getItem('kurio-session')
@@ -159,7 +160,10 @@ test('retorna ao NFT após login, atualiza favoritos otimistas e persiste após 
     .filter({ visible: true })
     .first()
   await favorite.click()
-  await expect(page).toHaveURL(/\/login\?redirect=/)
+  await expect(page).toHaveURL('/nfts/emerald-ape-042')
+  await expect(
+    page.getByRole('dialog', { name: 'Entrar', exact: true }),
+  ).toBeVisible()
   await submitLogin(page)
   await expect(page).toHaveURL('/nfts/emerald-ape-042')
   const response = page.waitForResponse(
@@ -215,7 +219,14 @@ test('faz rollback na falha de favoritos e recupera sem apagar a sessão', async
     .getByRole('button', { name: 'Tentar novamente', exact: true })
     .click()
   await scenario(page, 'favorites-ready')
+  const saved = page.waitForResponse(
+    (response) =>
+      new URL(response.url()).pathname.endsWith('/favorites') &&
+      response.request().method() === 'POST' &&
+      response.ok(),
+  )
   await button.click()
+  await saved
   await expect(button).toBeEnabled()
   expect((await request(page, '/favorites')).body.nftIds).toEqual([
     'emerald-ape-042',

@@ -1,6 +1,6 @@
 import { signInFixture } from './helpers/auth'
 import { readMockStorage, corruptMockStorage } from './helpers/storage'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady } from './helpers/navigation'
 import { expect, test, type Page } from '@playwright/test'
 import { ethSchema } from '../src/schemas/api/common'
 import { ethToWei, weiToEth } from '../src/utils/eth'
@@ -50,6 +50,7 @@ const browserRequest = async <T = unknown>(
   options: { method?: string; body?: unknown; token?: string } = {},
 ) => {
   await expect(page.locator('.site-layout')).toBeVisible()
+  await waitForAppReady(page)
   return page.evaluate(
     async ({ path, options }) => {
       const headers: Record<string, string> = {
@@ -151,10 +152,10 @@ test('rejeita payloads inválidos sem alterar o banco nem confirmar uma operaç�
     method: 'POST',
     body: { nftId: 'emerald-ape-042', editionId: '1/50', quantity: 1 },
   })
-  expect(valid.status).toBe(501)
+  expect(valid.status).toBe(200)
   expect((await browserRequest(page, '/cart')).body).toMatchObject({
-    items: [],
-    version: 1,
+    items: [{ nftId: 'emerald-ape-042', editionId: '1/50', quantity: 1 }],
+    version: 2,
   })
 })
 

@@ -1,0 +1,55 @@
+name: Regressão visual
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: visual-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
+
+jobs:
+  visual:
+    name: Interface em Chromium e Linux
+    runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:7852dc5a7d72f5fe458a597d690f6c42fbc8e9e26ddfa95f8e6ef552558d9bbf
+      options: --ipc=host
+    timeout-minutes: 15
+    env:
+      HUSKY: '0'
+      VITE_ENABLE_MOCKS: 'true'
+    steps:
+      - name: Obter o código do run
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Configurar Node e cache npm
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Fixar npm da aplicação
+        run: npm install --global npm@11.6.0
+      - name: Instalar pelo lockfile
+        run: npm ci
+      - name: Construir o aplicativo completo
+        run: npm run build
+      - name: Comparar as baselines sem atualizá-las
+        run: npm run test:visual -- --update-snapshots=none
+      - name: Guardar capturas relatório e diferenças
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: visual-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            reports/visual/
+            test-results/visual/
+          if-no-files-found: warn
+          retention-days: 7

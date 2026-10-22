@@ -1,10 +1,10 @@
-import { useRef, useState, type PointerEvent } from 'react'
+import { memo, useRef, useState, type PointerEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Icon } from '@/components/ui/Icon'
 import { CarouselDots } from '@/components/ui/CarouselDots'
 
-export function CatalogHero() {
+export const CatalogHero = memo(function CatalogHero() {
   const { t } = useTranslation(['catalog', 'card'])
   const [slide, setSlide] = useState(0)
   const swipeStart = useRef<{ x: number; y: number; pointerId: number } | null>(
@@ -122,4 +122,4 @@ export function CatalogHero() {
       </div>
     </section>
   )
-}
+})

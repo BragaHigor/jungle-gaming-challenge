@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { visit } from './helpers/navigation'
+import { visit, waitForAppReady, delayAppBootstrap } from './helpers/navigation'
 import { setScenario } from './helpers/scenarios'
 
 async function search(page: Page, value: string, mobile: boolean) {
@@ -217,7 +217,7 @@ test.describe('Catálogo e detalhe integrados à API', () => {
       page.getByRole('button', { name: 'Aumentar quantidade', exact: true }),
     ).toBeDisabled()
     await page.getByRole('button', { name: '1/1', exact: true }).click()
-    await expect(page.getByRole('link', { name: /^COMPRAR/ })).toBeVisible()
+    await expect(page.getByRole('button', { name: /^COMPRAR/ })).toBeVisible()
     await expect(
       page.getByRole('status', { name: 'Quantidade', exact: true }),
     ).toHaveText('1')
@@ -243,5 +243,176 @@ test.describe('Catálogo e detalhe integrados à API', () => {
       page.getByRole('heading', { name: 'Emerald Ape #042', exact: true }),
     ).toBeVisible()
     await expect(page).toHaveURL('/nfts/emerald-ape-042')
+  })
+})
+
+test('preserva as contagens dos filtros durante novas consultas', async ({
+  page,
+  isMobile,
+}) => {
+  await visit(page, '/')
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
+  if (isMobile)
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click()
+  const filters = page
+    .locator('.catalog-filters')
+    .filter({ visible: true })
+    .first()
+  const counts = filters.locator('.filter-count')
+  const initialCounts = await counts.allTextContents()
+  expect(initialCounts.length).toBeGreaterThan(0)
+  await filters.evaluate((root) => {
+    const expected = [...root.querySelectorAll('.filter-count')].map(
+      (node) => node.textContent,
+    )
+    const changes: string[][] = []
+    Object.assign(window, { filterCountChanges: changes })
+    new MutationObserver(() => {
+      const current = [...root.querySelectorAll('.filter-count')].map(
+        (node) => node.textContent ?? '',
+      )
+      if (JSON.stringify(current) !== JSON.stringify(expected))
+        changes.push(current)
+    }).observe(root, { childList: true, characterData: true, subtree: true })
+  })
+  await filters.getByRole('checkbox', { name: 'Arte digital' }).check()
+  await expect(page).toHaveURL(
+    (url) => url.searchParams.get('categories') === '["digitalArt"]',
+  )
+  await expect(page.locator('.catalog-grid article')).toHaveCount(8)
+  await expect(counts).toHaveText(initialCounts)
+  expect(
+    await page.evaluate(() => Reflect.get(window, 'filterCountChanges')),
+  ).toEqual([])
+})
+
+test('mantém os cards visíveis ao trocar filtros e páginas em rede lenta', async ({
+  page,
+}) => {
+  await visit(page, '/')
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
+  await setScenario(page, 'slow')
+  const grid = page.locator('.catalog-grid')
+  const firstCard = await grid.locator('article').first().textContent()
+  await page.getByRole('button', { name: 'Em alta', exact: true }).click()
+  await expect(grid).toHaveAttribute('aria-busy', 'true')
+  await expect(grid.locator('article')).toHaveCount(9)
+  expect(await grid.locator('article').first().textContent()).toBe(firstCard)
+  await expect(
+    page.getByRole('heading', { name: 'Não foi possível carregar os NFTs' }),
+  ).toHaveCount(0)
+  await expect(
+    page.locator('.catalog-main > [aria-busy=true]:not(.catalog-grid)'),
+  ).toHaveCount(0)
+  await expect(grid).toHaveAttribute('aria-busy', 'false')
+  await page.getByRole('button', { name: 'Todos os NFTs', exact: true }).click()
+  await expect(grid).toHaveAttribute('aria-busy', 'false')
+  await page.getByRole('button', { name: 'Página 2', exact: true }).click()
+  await expect(grid).toHaveAttribute('aria-busy', 'true')
+  await expect(grid.locator('article')).toHaveCount(9)
+  await expect(grid).toHaveAttribute('aria-busy', 'false')
+  await expect(page).toHaveURL((url) => url.searchParams.get('page') === '2')
+})
+
+test('altera as imagens entre páginas e mantém a arte da NFT no detalhe', async ({
+  page,
+}) => {
+  await visit(page, '/')
+  const grid = page.locator('.catalog-grid')
+  await expect(grid.locator('article')).toHaveCount(9)
+  const pageImages: string[][] = []
+  for (let number = 1; number <= 4; number++) {
+    if (number > 1)
+      await page
+        .getByRole('button', { name: `Página ${number}`, exact: true })
+        .click()
+    await expect(
+      page.getByRole('button', { name: `Página ${number}`, exact: true }),
+    ).toHaveAttribute('aria-current', 'page')
+    await expect(grid).toHaveAttribute('aria-busy', 'false')
+    const images = await grid
+      .locator('img')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('src')!))
+    expect(images).toHaveLength(9)
+    for (const previous of pageImages) {
+      images.forEach((image, index) => expect(image).not.toBe(previous[index]))
+    }
+    pageImages.push(images)
+    await expect(grid.locator('img').first()).toBeVisible()
+    expect(
+      await grid
+        .locator('img')
+        .first()
+        .evaluate(
+          (image: HTMLImageElement) => image.complete && image.naturalWidth > 0,
+        ),
+    ).toBe(true)
+  }
+  const image = grid.locator('img').first()
+  const source = await image.getAttribute('src')
+  const alt = await image.getAttribute('alt')
+  await grid.locator('article').first().getByRole('link').first().click()
+  await expect(page.locator('.nft-gallery__main img')).toHaveAttribute(
+    'src',
+    source!,
+  )
+  await expect(page.locator('.nft-gallery__main img')).toHaveAttribute(
+    'alt',
+    alt!,
+  )
+})
+
+test('atualiza artes salvas anteriormente sem perder preço e versão', async ({
+  page,
+}) => {
+  await visit(page, '/')
+  await expect(page.locator('.catalog-grid article')).toHaveCount(9)
+  const nftId = 'emerald-ape-042-600'
+  await page.evaluate(async (id) => {
+    await new Promise<void>((resolve, reject) => {
+      const request = indexedDB.open('kurio-mocks', 1)
+      request.onerror = () => reject(request.error)
+      request.onsuccess = () => {
+        const storage = request.result
+        const transaction = storage.transaction('state', 'readwrite')
+        const store = transaction.objectStore('state')
+        const read = store.get('database')
+        read.onsuccess = () => {
+          const database = read.result
+          const nft = database.nfts.find(
+            (item: { id: string }) => item.id === id,
+          )
+          Object.assign(nft, {
+            image: '/images/nft-artwork-01.webp',
+            imageAltKey: 'emeraldAlt',
+            price: '2.34',
+            version: 9,
+          })
+          store.put(database, 'database')
+        }
+        transaction.oncomplete = () => {
+          storage.close()
+          resolve()
+        }
+        transaction.onabort = () => {
+          storage.close()
+          reject(transaction.error)
+        }
+      }
+    })
+  }, nftId)
+  const delayedBootstrap = await delayAppBootstrap(page)
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await waitForAppReady(page)
+  const nft = await page.evaluate(
+    async (id) => (await fetch(`/api/nfts/${id}`)).json(),
+    nftId,
+  )
+  expect(delayedBootstrap()).toBeGreaterThan(0)
+  expect(nft).toMatchObject({
+    image: '/images/nft-artwork-02.webp',
+    imageAltKey: 'sageAlt',
+    price: '2.34',
+    version: 9,
   })
 })

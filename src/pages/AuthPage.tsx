@@ -1,3 +1,5 @@
+import type { AuthMode } from '@/hooks/useAuthDialog'
+import { DemoBanner } from '@/components/demo/DemoBanner'
 import { useEffect, useRef, useState } from 'react'
 import * as Primitive from '@radix-ui/react-dialog'
 import { Link, useNavigate } from '@tanstack/react-router'
@@ -75,11 +77,17 @@ export function AuthPage({
   state = 'ready',
   onClose,
   returnTo,
+  showBackground = true,
+  onSwitchMode,
+  onRestoreFocus,
 }: {
   mode: 'login' | 'register'
   state?: 'ready' | 'expired'
   onClose: () => void
   returnTo?: string
+  showBackground?: boolean
+  onSwitchMode?: (mode: AuthMode) => void
+  onRestoreFocus?: () => void
 }) {
   const { t } = useTranslation('account')
   const { t: common } = useTranslation()
@@ -89,6 +97,7 @@ export function AuthPage({
     password: '',
     confirm: '',
   })
+  const [focusRevision, setFocusRevision] = useState(0)
   const [errors, setErrors] = useState<AccountErrors>({})
   const [pending, setPending] = useState(false)
   const [failure, setFailure] = useState<
@@ -104,6 +113,9 @@ export function AuthPage({
   const isRegister = mode === 'register'
   const busy = pending
   useEffect(() => {
+    if (!busy && focusRevision > 0) focusFirstInvalid(form.current)
+  }, [busy, focusRevision])
+  useEffect(() => {
     if (failure && !busy) submit.current?.focus()
   }, [failure, busy])
   const loginCurrent = mode === 'login' ? 'page' : undefined
@@ -118,6 +130,7 @@ export function AuthPage({
   const statusKey = state === 'expired' ? 'expired' : undefined
   const statusMessage = failure ?? statusKey
   const change = (name: AccountFieldName, value: string) => {
+    setFailure(null)
     setDraft((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: undefined }))
   }
@@ -127,7 +140,7 @@ export function AuthPage({
     const result = schema.safeParse(draft)
     if (!result.success) {
       setErrors(getAccountErrors(result.error.issues))
-      focusFirstInvalid(form.current)
+      setFocusRevision((value) => value + 1)
       return
     }
     setErrors({})
@@ -141,7 +154,11 @@ export function AuthPage({
       const session = await authenticate(mode, draft, request.signal)
       if (request.signal.aborted || readToken() !== previousToken) return
       if (!(await replaceSession(session))) return
-      await navigate({ href: safeReturn(returnTo), replace: true })
+      await navigate({
+        href: safeReturn(returnTo),
+        replace: true,
+        resetScroll: showBackground,
+      })
     } catch (error) {
       if (request.signal.aborted) return
       if (error instanceof ApiError && error.code === 'CONFLICT') {
@@ -150,7 +167,7 @@ export function AuthPage({
         if (error.fields?.username === 'usernameTaken')
           fields.username = 'usernameTaken'
         setErrors(fields)
-        focusFirstInvalid(form.current)
+        setFocusRevision((value) => value + 1)
       } else {
         setFailure(
           error instanceof ApiError && error.status === 401
@@ -165,9 +182,11 @@ export function AuthPage({
   }
   return (
     <>
-      <div aria-hidden="true" inert className="max-tablet:hidden">
-        <HomePage />
-      </div>
+      {showBackground && (
+        <div aria-hidden="true" inert className="max-tablet:hidden">
+          <HomePage />
+        </div>
+      )}
       <Primitive.Root
         open
         onOpenChange={(open) => {
@@ -185,11 +204,13 @@ export function AuthPage({
             }}
             onCloseAutoFocus={(event) => {
               event.preventDefault()
-              requestAnimationFrame(() =>
-                document
-                  .querySelector<HTMLElement>('main')
-                  ?.focus({ preventScroll: true }),
-              )
+              requestAnimationFrame(() => {
+                if (onRestoreFocus) onRestoreFocus()
+                else
+                  document
+                    .querySelector<HTMLElement>('main')
+                    ?.focus({ preventScroll: true })
+              })
             }}
           >
             <Primitive.Close
@@ -210,6 +231,12 @@ export function AuthPage({
             >
               <Link
                 to="/login"
+                onClick={(event) => {
+                  if (onSwitchMode) {
+                    event.preventDefault()
+                    onSwitchMode('login')
+                  }
+                }}
                 search={{ redirect: returnTo }}
                 aria-current={loginCurrent}
                 className="aria-[current=page]:text-primary"
@@ -221,6 +248,12 @@ export function AuthPage({
               </span>
               <Link
                 to="/register"
+                onClick={(event) => {
+                  if (onSwitchMode) {
+                    event.preventDefault()
+                    onSwitchMode('register')
+                  }
+                }}
                 search={{ redirect: returnTo }}
                 aria-current={registerCurrent}
                 className="aria-[current=page]:text-primary"
@@ -234,6 +267,7 @@ export function AuthPage({
             <Primitive.Description className="mb-6 text-center text-xs text-foreground max-tablet:sr-only">
               {t(copy.lead)}
             </Primitive.Description>
+            <DemoBanner />
             <form
               ref={form}
               noValidate
@@ -252,6 +286,12 @@ export function AuthPage({
                   onChange={change}
                   compact
                   passwordHint={isRegister}
+                  placeholders={{
+                    username: t('registerUsernamePlaceholder'),
+                    email: t(`${mode}EmailPlaceholder`),
+                    password: t(`${mode}PasswordPlaceholder`),
+                    confirm: t('registerConfirmPlaceholder'),
+                  }}
                   className="gap-y-3"
                 />
                 {!isRegister && (
@@ -292,6 +332,12 @@ export function AuthPage({
             </div>
             <Link
               to={copy.destination}
+              onClick={(event) => {
+                if (onSwitchMode) {
+                  event.preventDefault()
+                  onSwitchMode(isRegister ? 'login' : 'register')
+                }
+              }}
               search={{ redirect: returnTo }}
               className="mt-10 min-h-11 content-center text-center text-sm text-secondary tablet:hidden"
             >

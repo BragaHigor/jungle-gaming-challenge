@@ -6,10 +6,33 @@ import {
   savedWalletSchema,
   userSchema,
 } from '@/schemas/api/account'
-import { cartSchema, orderSchema, quoteSchema } from '@/schemas/api/purchase'
+import {
+  cartSchema,
+  orderSchema,
+  quoteSchema,
+  connectionSchema,
+} from '@/schemas/api/purchase'
 import { homeCards } from './presentation'
 
 const storageKey = 'kurio-mock-database-v1'
+const catalogArtwork = new Map(
+  homeCards.map(({ id, image, imageAltKey }) => [id, { image, imageAltKey }]),
+)
+
+function updateCatalogArtwork(database: Database) {
+  let changed = false
+  for (const nft of database.nfts) {
+    const artwork = catalogArtwork.get(nft.id)
+    if (
+      !artwork ||
+      (nft.image === artwork.image && nft.imageAltKey === artwork.imageAltKey)
+    )
+      continue
+    Object.assign(nft, artwork)
+    changed = true
+  }
+  return changed
+}
 const sessionRecordSchema = z.strictObject({
   token: z.string(),
   userId: z.string(),
@@ -29,12 +52,49 @@ export const databaseSchema = z.strictObject({
   profiles: z.array(profileResponseSchema),
   wallets: z.array(savedWalletSchema),
   carts: z.array(cartSchema),
+  cartFaults: z
+    .record(
+      z.string(),
+      z.enum(['quote-failure', 'coupon-invalid', 'coupon-expired', 'slow']),
+    )
+    .default({}),
   quotes: z.array(quoteSchema),
   orders: z.array(orderSchema),
+  connections: z.array(connectionSchema).default([]),
+  orderFaults: z
+    .record(
+      z.string(),
+      z.enum([
+        'declined',
+        'timeout',
+        'pending',
+        'connection-refused',
+        'read-failure',
+        'ready',
+      ]),
+    )
+    .default({}),
+  settlements: z
+    .record(
+      z.string(),
+      z.strictObject({
+        dueAt: z.number(),
+        outcome: z.enum(['confirmed', 'declined']),
+        cartId: z.string(),
+        lineIds: z.array(z.string()),
+      }),
+    )
+    .default({}),
   favorites: z.record(z.string(), z.array(z.string())),
   favoriteVersions: z.record(z.string(), z.int().positive()).default({}),
   favoriteFailures: z.array(z.string()).default([]),
   sessions: z.array(sessionRecordSchema),
+  accountFaults: z
+    .record(
+      z.string(),
+      z.enum(['slow', 'read-failure', 'write-failure', 'validation']),
+    )
+    .default({}),
   idempotency: z.record(
     z.string(),
     z.strictObject({
@@ -193,6 +253,7 @@ export function createDatabase(scenario: Scenario = 'default'): Database {
     idempotency: {},
     coupons: [
       { code: 'KURIO10', percent: 10, expiresAt: '2030-01-01T00:00:00.000Z' },
+      { code: 'EXPIRADO', percent: 10, expiresAt: '2020-01-01T00:00:00.000Z' },
     ],
   })
 }
@@ -252,8 +313,9 @@ async function transaction<T>(
       try {
         const parsed = databaseSchema.safeParse(request.result)
         const database = parsed.success ? parsed.data : readLegacyDatabase()
+        const artworkChanged = updateCatalogArtwork(database)
         result = action(database)
-        if (write || !parsed.success)
+        if (write || !parsed.success || artworkChanged)
           store.put(databaseSchema.parse(database), recordKey)
       } catch (error) {
         failure = error
@@ -305,12 +367,31 @@ function statusFromDatabase(
   token?: string | null,
 ): DemoStatus {
   const session = getSession(database, token)
+  const fault = session && database.accountFaults[session.user.id]
+  const orderFault = session && database.orderFaults[session.user.id]
+  const orderScenarios = {
+    'read-failure': 'order-read-failure',
+    ready: 'order-confirmed',
+    declined: 'order-declined',
+    timeout: 'order-timeout',
+    pending: 'order-pending',
+    'connection-refused': 'connection-refused',
+  } as const
+  let scenario: Scenario = database.scenario
+  if (orderFault) scenario = orderScenarios[orderFault]
+  if (fault) scenario = `account-${fault}`
   return {
-    scenario: database.scenario,
+    scenario,
     generation: database.generation,
     session,
     pendingOrderId:
-      database.orders.find((order) => order.userId === session?.user.id)?.id ??
+      database.orders.find(
+        (order) =>
+          order.userId === session?.user.id && order.status === 'pending',
+      )?.id ??
+      database.orders
+        .filter((order) => order.userId === session?.user.id)
+        .at(-1)?.id ??
       null,
   }
 }

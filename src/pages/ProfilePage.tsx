@@ -1,19 +1,22 @@
-import type { PublicUser } from '@/schemas/api/account'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AccountLayout } from '@/components/account/AccountLayout'
 import { AccountFields } from '@/components/account/AccountFields'
 import { AccountState } from '@/components/account/AccountState'
+import { UnsavedNavigationGuard } from '@/components/account/UnsavedNavigationGuard'
 import { AvatarField } from '@/components/account/AvatarField'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { QueryFeedback } from '@/components/shared/QueryFeedback'
 import { Button } from '@/components/ui/button'
-import {
-  profileSchema,
-  type ProfileDraft,
-  type AccountViewState,
-} from '@/schemas/account'
+import { useProfileData } from '@/hooks/useAccountData'
+import { profileSchema, type ProfileDraft } from '@/schemas/account'
+import type { Profile } from '@/schemas/api/account'
 import type { AccountErrors, AccountFieldName } from '@/types/account'
-import { focusFirstInvalid, getAccountErrors } from '@/utils/forms'
+import { ApiError } from '@/api/client'
+import {
+  focusFirstInvalid,
+  getAccountErrors,
+  remoteAccountErrors,
+} from '@/utils/forms'
 
 const profileFields = ['displayName', 'username', 'email', 'ens'] as const
 const passwordFields = [
@@ -21,64 +24,100 @@ const passwordFields = [
   'newPassword',
   'confirmPassword',
 ] as const
-
-export function ProfilePage({
-  state = 'ready',
-  onRetry,
-  user,
+const profileDraft = (profile: Profile): ProfileDraft => ({
+  displayName: profile.displayName,
+  username: profile.username,
+  email: profile.email,
+  ens: profile.ens,
+  walletNickname: profile.walletNickname,
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+function ProfileForm({
+  profile,
+  mutation,
+  refresh,
 }: {
-  state?: AccountViewState
-  onRetry: () => void
-  user?: PublicUser
+  profile: Profile
+  mutation: ReturnType<typeof useProfileData>['mutation']
+  refresh: () => Promise<Profile | undefined>
 }) {
   const { t } = useTranslation('account')
-  const { t: common } = useTranslation()
-  const [draft, setDraft] = useState<ProfileDraft>({
-    displayName: user?.displayName ?? '',
-    username: user?.username ?? '',
-    email: user?.email ?? '',
-    ens: '',
-    walletNickname: '',
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-  })
+  const [draft, setDraft] = useState(() => profileDraft(profile))
+  const [baseline, setBaseline] = useState(() => profileDraft(profile))
+  const [savedAvatar, setSavedAvatar] = useState(profile.avatar)
+  const [baseVersion, setBaseVersion] = useState(profile.version)
+  const [avatar, setAvatar] = useState(profile.avatar)
+  const [avatarValid, setAvatarValid] = useState(true)
+  const [focusRevision, setFocusRevision] = useState(0)
   const [errors, setErrors] = useState<AccountErrors>({})
-  const [unavailable, setUnavailable] = useState(false)
+  const [message, setMessage] = useState<
+    'saved' | 'saveError' | 'saveConflict' | null
+  >(null)
   const form = useRef<HTMLFormElement>(null)
-  const submit = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!mutation.isPending && focusRevision > 0)
+      focusFirstInvalid(form.current)
+  }, [focusRevision, mutation.isPending])
   const change = (name: AccountFieldName, value: string) => {
     setDraft((current) => ({ ...current, [name]: value }))
     setErrors((current) => ({ ...current, [name]: undefined }))
+    setMessage(null)
   }
-  const validate = () => {
+  const save = () => {
+    if (mutation.isPending || !avatarValid) return
     const result = profileSchema.safeParse(draft)
+    setMessage(null)
     if (!result.success) {
       setErrors(getAccountErrors(result.error.issues))
-      focusFirstInvalid(form.current)
+      setFocusRevision((value) => value + 1)
       return
     }
     setErrors({})
-    setDraft((current) => ({
-      ...current,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    }))
-    setUnavailable(true)
+    mutation.mutate(
+      { ...result.data, avatar, version: baseVersion },
+      {
+        onSuccess: (saved) => {
+          setBaseVersion(saved.version)
+          setDraft(profileDraft(saved))
+          setBaseline(profileDraft(saved))
+          setSavedAvatar(saved.avatar)
+          setAvatar(saved.avatar)
+          setMessage('saved')
+        },
+        onError: (error) => {
+          if (error instanceof ApiError && error.fields) {
+            setErrors(remoteAccountErrors(error.fields))
+            setFocusRevision((value) => value + 1)
+          }
+          const conflict =
+            error instanceof ApiError &&
+            error.code === 'CONFLICT' &&
+            !error.fields
+          setMessage(conflict ? 'saveConflict' : 'saveError')
+          if (conflict) refresh()
+        },
+      },
+    )
   }
-  const content =
-    state === 'ready' ? (
-      <form
-        ref={form}
-        noValidate
-        onSubmit={(event) => {
-          event.preventDefault()
-          validate()
-        }}
-        className="mt-8"
-        aria-label={t('profileForm')}
-      >
+  const dirty =
+    (Object.keys(draft) as (keyof ProfileDraft)[]).some(
+      (field) => draft[field] !== baseline[field],
+    ) || avatar !== savedAvatar
+  return (
+    <form
+      ref={form}
+      noValidate
+      onSubmit={(event) => {
+        event.preventDefault()
+        save()
+      }}
+      className="mt-8"
+      aria-label={t('profileForm')}
+      aria-busy={mutation.isPending}
+    >
+      <fieldset disabled={mutation.isPending} className="min-w-0">
         <div className="grid items-start gap-x-7 gap-y-5 desktop:grid-cols-2">
           <AccountFields
             fields={profileFields}
@@ -93,7 +132,17 @@ export function ProfilePage({
             errors={errors}
             onChange={change}
           />
-          <AvatarField />
+          <AvatarField
+            value={avatar}
+            onChange={(value) => {
+              setAvatar(value)
+              setMessage(null)
+            }}
+            onValidityChange={(valid) => {
+              setAvatarValid(valid)
+              if (!valid) setMessage(null)
+            }}
+          />
         </div>
         <h2 className="mt-8 mb-5 text-base font-bold">{t('changePassword')}</h2>
         <AccountFields
@@ -104,30 +153,67 @@ export function ProfilePage({
           className="max-w-[418px]"
         />
         <Button
-          ref={submit}
           type="submit"
+          disabled={!avatarValid}
           className="mt-8 min-w-32 max-tablet:w-full"
         >
-          {t('save')}
+          {t(mutation.isPending ? 'processing' : 'save')}
         </Button>
-      </form>
-    ) : (
-      <AccountState state={state} onRetry={onRetry} />
+      </fieldset>
+      {message && (
+        <p
+          className={`mt-4 text-sm ${message === 'saved' ? 'text-primary' : 'text-destructive'}`}
+          role={message === 'saved' ? 'status' : 'alert'}
+        >
+          {t(message)}
+          {message === 'saveConflict' && (
+            <button
+              type="button"
+              className="mt-2 block min-h-11 underline"
+              onClick={async () => {
+                const latest = await refresh()
+                if (!latest) return
+                setDraft(profileDraft(latest))
+                setBaseline(profileDraft(latest))
+                setSavedAvatar(latest.avatar)
+                setAvatar(latest.avatar)
+                setBaseVersion(latest.version)
+                setErrors({})
+                setMessage(null)
+              }}
+            >
+              {t('reloadSaved')}
+            </button>
+          )}
+        </p>
+      )}
+      <UnsavedNavigationGuard dirty={dirty} />
+    </form>
+  )
+}
+export function ProfilePage() {
+  const { t } = useTranslation('account')
+  const { query, mutation } = useProfileData()
+  let content = (
+    <AccountState state="loading" onRetry={() => void query.refetch()} />
+  )
+  if (query.isError && !query.data)
+    content = (
+      <AccountState state="error" onRetry={() => void query.refetch()} />
+    )
+  if (query.data)
+    content = (
+      <ProfileForm
+        profile={query.data}
+        mutation={mutation}
+        refresh={async () => (await query.refetch()).data}
+      />
     )
   return (
     <AccountLayout page="profile">
       <h1 className="text-base font-bold">{t('profileTitle')}</h1>
+      <QueryFeedback query={query} resource="account" />
       {content}
-      <Dialog open={unavailable} onOpenChange={setUnavailable}>
-        <DialogContent
-          title={common('unavailableTitle')}
-          description={common('unavailableDescription')}
-          onCloseAutoFocus={(event) => {
-            event.preventDefault()
-            submit.current?.focus()
-          }}
-        />
-      </Dialog>
     </AccountLayout>
   )
 }

@@ -3,24 +3,16 @@ import {
   createRoute,
   createRouter,
   redirect,
+  lazyRouteComponent,
 } from '@tanstack/react-router'
 import { SessionError } from '@/components/account/SessionError'
 import { App } from './App'
 import { catalogSearchSchema } from '@/schemas/catalog-search'
 import { HomeRoute, NftRoute } from './CatalogRoutes'
-import { CartRoute, CheckoutRoute } from './PurchaseRoutes'
-import { ConfirmationPage } from '@/pages/ConfirmationPage'
-import { presentationSearchSchema } from '@/schemas/presentation'
 import { NotFoundPage } from '@/pages/NotFoundPage'
-import {
-  LoginRoute,
-  RegistrationRoute,
-  ProfileRoute,
-  WalletsRoute,
-} from './AccountRoutes'
 import { queryClient } from './query-client'
 import { sessionOptions, safeReturn, readToken } from '@/services/session'
-import { accountSearchSchema, authSearchSchema } from '@/schemas/account'
+import { authSearchSchema } from '@/schemas/account'
 import { parseSearch, stringifySearch } from '@/utils/search'
 
 const requireAccount = async ({ location }: { location: { href: string } }) => {
@@ -65,46 +57,73 @@ export const router = createRouter({
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/cart',
-      validateSearch: (search) => presentationSearchSchema.parse(search),
-      component: CartRoute,
+      component: lazyRouteComponent(
+        () => import('./PurchaseRoutes'),
+        'CartRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/checkout',
       beforeLoad: requireAccount,
-      component: CheckoutRoute,
+      component: lazyRouteComponent(
+        () => import('./PurchaseRoutes'),
+        'CheckoutRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/confirmation',
+      validateSearch: (search: Record<string, unknown>) => ({
+        orderId:
+          typeof search.orderId === 'string' &&
+          /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$/.test(search.orderId)
+            ? search.orderId
+            : undefined,
+      }),
       beforeLoad: requireAccount,
-      component: ConfirmationPage,
+      component: lazyRouteComponent(
+        () => import('@/pages/ConfirmationPage'),
+        'ConfirmationPage',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/login',
       validateSearch: (search) => authSearchSchema.parse(search),
-      component: LoginRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'LoginRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/register',
       validateSearch: (search) => authSearchSchema.parse(search),
-      component: RegistrationRoute,
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'RegistrationRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/profile',
       beforeLoad: requireAccount,
-      validateSearch: (search) => accountSearchSchema.parse(search),
-      component: ProfileRoute,
+      validateSearch: () => ({}),
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'ProfileRoute',
+      ),
     }),
     createRoute({
       getParentRoute: () => rootRoute,
       path: '/wallets',
       beforeLoad: requireAccount,
-      validateSearch: (search) => accountSearchSchema.parse(search),
-      component: WalletsRoute,
+      validateSearch: () => ({}),
+      component: lazyRouteComponent(
+        () => import('./AccountRoutes'),
+        'WalletsRoute',
+      ),
     }),
   ]),
 })

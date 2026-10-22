@@ -1,6 +1,15 @@
+import { prepareGuidedDemo } from './guided-demo'
+import { orderHandlers } from './order-handlers'
+import { accountHandlers } from './account-handlers'
+import { currentCart } from './cart'
+import { cartHandlers } from './cart-handlers'
 import { http, HttpResponse } from 'msw'
 import { catalogResponseSchema, nftSchema } from '@/schemas/api/catalog'
-import { demoRequestSchema, demoEventRequestSchema } from '@/schemas/demo'
+import {
+  demoRequestSchema,
+  demoEventRequestSchema,
+  demoConnectionSchema,
+} from '@/schemas/demo'
 import { resourceIdSchema } from '@/schemas/api/common'
 import {
   loginRequestSchema,
@@ -8,21 +17,20 @@ import {
   favoriteRequestSchema,
 } from '@/schemas/api/account'
 import {
-  cartItemRequestSchema,
-  idempotencyKeySchema,
-  orderRequestSchema,
-  quoteRequestSchema,
-} from '@/schemas/api/purchase'
-import {
   getDemoStatus,
   readDatabase,
   resetDatabase,
   updateDatabase,
 } from './database'
-import { closeConnections, emitResourceEvent } from './realtime'
+import {
+  closeConnections,
+  emitResourceEvent,
+  changeConnection,
+  releasePendingOrders,
+} from './realtime'
 import { listNfts } from './catalog'
 import { failure, jsonBody, MockError, parseInput, respond } from './responses'
-import { scenarioResponse } from './scenarios'
+import { readScenario, scenarioResponse } from './scenarios'
 import { login, register, requireUser } from './auth'
 import { delay } from 'msw'
 
@@ -39,26 +47,6 @@ const privateReads = [
       return json(await requireSession(request))
     }),
   ),
-  http.get('/api/profile', ({ request }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      return json(
-        (await readDatabase()).profiles.find(
-          (profile) => profile.id === session.user.id,
-        ),
-      )
-    }),
-  ),
-  http.get('/api/wallets', ({ request }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      return json(
-        (await readDatabase()).wallets.filter(
-          (wallet) => wallet.userId === session.user.id,
-        ),
-      )
-    }),
-  ),
   http.get('/api/favorites', ({ request }) =>
     respond(async () => {
       const database = await readDatabase()
@@ -70,20 +58,17 @@ const privateReads = [
       })
     }),
   ),
-  http.get('/api/orders/:id', ({ request, params }) =>
-    respond(async () => {
-      const session = await requireSession(request)
-      const id = parseInput(resourceIdSchema, params.id)
-      const order = (await readDatabase()).orders.find(
-        (value) => value.id === id,
-      )
-      if (!order) return failure('NOT_FOUND', 404)
-      if (order.userId !== session.user.id) return failure('FORBIDDEN', 403)
-      return json(order)
-    }),
-  ),
 ]
 export const handlers = [
+  http.post('/api/demo/start', ({ request }) =>
+    respond(async () => {
+      const { scenario } = parseInput(
+        demoRequestSchema,
+        await jsonBody(request),
+      )
+      return json(await prepareGuidedDemo(scenario))
+    }),
+  ),
   http.get('/api/demo', ({ request }) =>
     respond(async () =>
       json(
@@ -99,6 +84,100 @@ export const handlers = [
         demoRequestSchema,
         await jsonBody(request),
       )
+      if (scenario.startsWith('order-') || scenario === 'connection-refused') {
+        await updateDatabase((database) => {
+          const { user } = requireUser(database, request)
+          const faults = {
+            'order-read-failure': 'read-failure',
+            'order-confirmed': 'ready',
+            'order-declined': 'declined',
+            'order-timeout': 'timeout',
+            'order-pending': 'pending',
+            'connection-refused': 'connection-refused',
+          } as const
+          database.orderFaults[user.id] =
+            faults[scenario as keyof typeof faults]
+        })
+        if (scenario === 'order-confirmed') await releasePendingOrders(request)
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
+      if (scenario.startsWith('account-')) {
+        await updateDatabase((database) => {
+          const { user } = requireUser(database, request)
+          const faults = {
+            'account-slow': 'slow',
+            'account-read-failure': 'read-failure',
+            'account-write-failure': 'write-failure',
+            'account-validation': 'validation',
+          } as const
+          const fault = faults[scenario as keyof typeof faults]
+          if (fault) database.accountFaults[user.id] = fault
+          else delete database.accountFaults[user.id]
+        })
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
+      const cartScenarios = [
+        'cart-empty',
+        'coupon-invalid',
+        'coupon-expired',
+        'quote-failure',
+        'cart-price-change',
+        'cart-stock-change',
+        'cart-ready',
+        'cart-slow',
+      ]
+      if (cartScenarios.includes(scenario)) {
+        if (
+          scenario === 'cart-price-change' ||
+          scenario === 'cart-stock-change'
+        ) {
+          const database = await readDatabase()
+          const cart = currentCart(database, request)
+          const item = cart.items[0]
+          await emitResourceEvent('nft.updated', request, {
+            nftId: item?.nftId ?? database.nfts[0].id,
+            editionId: item?.editionId ?? '1/50',
+            soldOut: scenario === 'cart-stock-change',
+          })
+        } else {
+          await updateDatabase((database) => {
+            const cart = currentCart(database, request)
+            if (scenario === 'cart-empty') {
+              cart.items = []
+              cart.coupon = null
+              cart.version++
+              return
+            }
+            if (scenario === 'cart-ready') {
+              delete database.cartFaults[cart.id]
+              return
+            }
+            if (scenario === 'cart-slow') {
+              database.cartFaults[cart.id] = 'slow'
+              return
+            }
+            if (
+              scenario === 'coupon-invalid' ||
+              scenario === 'coupon-expired' ||
+              scenario === 'quote-failure'
+            )
+              database.cartFaults[cart.id] = scenario
+          })
+        }
+        return json(
+          await getDemoStatus(
+            request.headers.get('Authorization')?.replace(/^Bearer /, ''),
+          ),
+        )
+      }
       if (
         ['session-expired', 'favorites-failure', 'favorites-ready'].includes(
           scenario,
@@ -130,50 +209,52 @@ export const handlers = [
       return json(status)
     }),
   ),
-  http.post('/api/demo/events', ({ request }) =>
+  http.post('/api/demo/connection', ({ request }) =>
     respond(async () => {
-      const { type } = parseInput(
-        demoEventRequestSchema,
+      const { action } = parseInput(
+        demoConnectionSchema,
         await jsonBody(request),
       )
-      await emitResourceEvent(type, request)
+      await changeConnection(request, action)
+      return json({ action })
+    }),
+  ),
+  http.post('/api/demo/events', ({ request }) =>
+    respond(async () => {
+      const input = parseInput(demoEventRequestSchema, await jsonBody(request))
+      await emitResourceEvent(input.type, request, undefined, input)
       return json({ emitted: true })
     }),
   ),
   http.get('/api/nfts', ({ request }) =>
     respond(async () => {
-      const fault = await scenarioResponse(request)
+      const { database, response: fault } = await readScenario(request)
       if (fault) return fault
-      if ((await readDatabase()).scenario === 'malformed-response')
+      if (database.scenario === 'malformed-response')
         return json({ items: [], total: 'invalid', page: 1, pageSize: 9 })
       return json(
-        parseInput(catalogResponseSchema, await listNfts(new URL(request.url))),
+        parseInput(
+          catalogResponseSchema,
+          listNfts(new URL(request.url), database),
+        ),
       )
     }),
   ),
   http.get('/api/nfts/:id', ({ request, params }) =>
     respond(async () => {
-      const fault = await scenarioResponse(request)
+      const { database, response: fault } = await readScenario(request)
       if (fault) return fault
-      if ((await readDatabase()).scenario === 'malformed-response')
+      if (database.scenario === 'malformed-response')
         return json({ id: params.id, price: 1 })
       const id = parseInput(resourceIdSchema, params.id)
-      const nft = (await readDatabase()).nfts.find((value) => value.id === id)
+      const nft = database.nfts.find((value) => value.id === id)
       if (!nft) return failure('NOT_FOUND', 404)
       return json(parseInput(nftSchema, nft))
     }),
   ),
-  http.get('/api/cart', ({ request }) =>
-    respond(async () => {
-      const userId = request.headers.has('Authorization')
-        ? (await requireSession(request)).user.id
-        : null
-      return json(
-        (await readDatabase()).carts.find((cart) => cart.userId === userId),
-      )
-    }),
-  ),
+  ...cartHandlers,
   ...privateReads,
+  ...accountHandlers,
   http.post('/api/auth/login', ({ request }) =>
     respond(async () => {
       const input = parseInput(loginRequestSchema, await jsonBody(request))
@@ -236,26 +317,6 @@ export const handlers = [
       return json(result)
     }),
   ),
-  http.post('/api/cart/items', ({ request }) =>
-    respond(async () => {
-      parseInput(cartItemRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
-    }),
-  ),
-  http.post('/api/quotes', ({ request }) =>
-    respond(async () => {
-      await requireSession(request)
-      parseInput(quoteRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
-    }),
-  ),
-  http.post('/api/orders', ({ request }) =>
-    respond(async () => {
-      await requireSession(request)
-      parseInput(idempotencyKeySchema, request.headers.get('Idempotency-Key'))
-      parseInput(orderRequestSchema, await jsonBody(request))
-      return failure('NOT_IMPLEMENTED', 501)
-    }),
-  ),
+  ...orderHandlers,
   http.all('/api/*', () => failure('NOT_FOUND', 404)),
 ]

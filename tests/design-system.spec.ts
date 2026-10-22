@@ -20,7 +20,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
       exact: true,
     })
     await select.click()
-    const first = page.getByRole('option', { name: 'Padrão', exact: true })
+    const first = select.getByRole('option', { name: 'Padrão', exact: true })
     const firstBox = await first.boundingBox()
     expect(firstBox).not.toBeNull()
     const scroll = await page.evaluate(() => window.scrollY)
@@ -37,7 +37,7 @@ test.describe('Componentes compartilhados e identidade visual', () => {
     expect(await dialog.evaluate((element) => element.scrollTop)).toBe(
       dialogScroll,
     )
-    await page
+    await select
       .getByRole('option', {
         name: 'Pedido pendente (conta fictícia)',
         exact: true,

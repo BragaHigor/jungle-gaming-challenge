@@ -113,13 +113,23 @@ const firstPage: readonly CatalogNft[] = [
   },
 ]
 
+const artworks = [firstPage[0], firstPage[1], firstPage[2], firstPage[6]].map(
+  ({ image, imageAltKey }) => ({ image, imageAltKey }),
+)
+
 export const homeCards: readonly CatalogNft[] = [
   ...firstPage,
   ...Array.from({ length: 27 }, (_, index) => {
     const original = firstPage[index % firstPage.length]
     const token = String(600 + index)
+    const pageOffset = Math.floor(index / firstPage.length) + 1
+    const artworkIndex = artworks.findIndex(
+      ({ image }) => image === original.image,
+    )
+    const artwork = artworks[(artworkIndex + pageOffset) % artworks.length]
     return {
       ...original,
+      ...artwork,
       id: `${original.id}-${token}`,
       title: `${original.title.split(' #')[0]} #${token}`,
       token,

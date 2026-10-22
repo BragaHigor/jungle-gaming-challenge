@@ -9,4 +9,3 @@ export type AccountFieldName =
   keyof ProfileDraft | keyof RegistrationDraft | keyof WalletDraft
 export type AccountValues = Partial<Record<AccountFieldName, string>>
 export type AccountErrors = Partial<Record<AccountFieldName, AccountErrorCode>>
-export type SavedWallet = { id: string; label: string; draft: WalletDraft }

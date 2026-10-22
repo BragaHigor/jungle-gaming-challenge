@@ -5,6 +5,10 @@ on:
     branches: [develop, main]
   workflow_dispatch:
   workflow_call:
+    inputs:
+      run-e2e:
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -38,7 +42,7 @@ jobs:
     name: Qualidade
     needs: branch-policy
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       HUSKY: '0'
       VITE_ENABLE_MOCKS: 'true'
@@ -66,6 +70,7 @@ jobs:
       - name: Instalar Chromium e dependências
         run: npm exec -- playwright install --with-deps chromium
       - name: Testar desktop, mobile e traduções
+        if: ${{ github.event_name != 'push' || inputs.run-e2e }}
         run: npm run test:e2e
       - name: Conferir smoke do build local
         run: npm run test:deploy

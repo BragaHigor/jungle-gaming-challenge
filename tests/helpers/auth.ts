@@ -1,11 +1,14 @@
 import { expect, type Page } from '@playwright/test'
-import { visit } from './navigation'
+import { seedWallets } from './account'
+import { seedCart } from './cart'
+import { visit, waitForAppReady } from './navigation'
 
 export async function signInFixture(
   page: Page,
   email = 'colecionador@kurio.demo',
 ) {
   if (!page.url().startsWith('http')) await visit(page, '/')
+  await waitForAppReady(page)
   const status = await page.evaluate(async (email) => {
     const response = await fetch('/api/auth/login', {
       method: 'POST',
@@ -24,6 +27,10 @@ export async function visitWithAccount(page: Page, path: string) {
     if (!page.url().startsWith('http')) await visit(page, '/')
     if (!(await page.evaluate(() => sessionStorage.getItem('kurio-session'))))
       await signInFixture(page)
+  }
+  if (path.startsWith('/checkout')) {
+    await seedCart(page)
+    await seedWallets(page)
   }
   await visit(page, path)
 }

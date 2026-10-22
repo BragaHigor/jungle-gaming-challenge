@@ -139,10 +139,11 @@ export function HomePage() {
               <CatalogState state={displayState} onReset={reset} />
             ) : (
               <>
-                <NftGrid className="catalog-grid">
-                  {controls.visible.map((card) => (
+                <NftGrid className="catalog-grid" aria-busy={result.isFetching}>
+                  {controls.visible.map((card, index) => (
                     <NftCard
                       key={card.id}
+                      priority={index < 3}
                       nft={{ ...card, imageAlt: t(`card:${card.imageAltKey}`) }}
                     />
                   ))}
@@ -154,7 +155,7 @@ export function HomePage() {
                   <button
                     className="w-11 h-11 text-secondary [&[aria-current='page']]:bg-primary [&[aria-current='page']]:text-background [&[aria-current='page']]:rounded-sm disabled:opacity-35"
                     type="button"
-                    disabled={controls.page === 1}
+                    disabled={result.isPlaceholderData || controls.page === 1}
                     aria-label={t('catalog:previousPage')}
                     onClick={() => controls.setPage(controls.page - 1)}
                   >
@@ -165,6 +166,7 @@ export function HomePage() {
                       className="w-11 h-11 text-secondary [&[aria-current='page']]:bg-primary [&[aria-current='page']]:text-background [&[aria-current='page']]:rounded-sm disabled:opacity-35"
                       type="button"
                       key={index}
+                      disabled={result.isPlaceholderData}
                       aria-label={t('catalog:page', { number: index + 1 })}
                       aria-current={
                         controls.page === index + 1 ? 'page' : undefined
@@ -177,7 +179,10 @@ export function HomePage() {
                   <button
                     className="w-11 h-11 text-secondary [&[aria-current='page']]:bg-primary [&[aria-current='page']]:text-background [&[aria-current='page']]:rounded-sm disabled:opacity-35"
                     type="button"
-                    disabled={controls.page === controls.pageCount}
+                    disabled={
+                      result.isPlaceholderData ||
+                      controls.page === controls.pageCount
+                    }
                     aria-label={t('catalog:nextPage')}
                     onClick={() => controls.setPage(controls.page + 1)}
                   >

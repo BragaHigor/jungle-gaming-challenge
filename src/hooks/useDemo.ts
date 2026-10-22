@@ -1,18 +1,82 @@
+import { useNavigate } from '@tanstack/react-router'
 import { useSession } from './useSession'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useState } from 'react'
+import { z } from 'zod'
+import { scenarioSchema } from '@/schemas/demo'
+import { replaceSession } from '@/services/session'
+import { demoDestination } from '@/constants/demo'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  startGuidedDemo,
   emitDemoEvent,
   getDemoOrder,
   getDemoStatus,
   resetDemo,
+  setDemoConnection,
 } from '@/api/demo'
-import { subscribeToEvents } from '@/services/realtime'
-import type { ResourceEvent } from '@/schemas/api/events'
+import { useRealtime } from './useRealtime'
+
+const guidedKey = 'kurio-guided-demo'
+const guidedSchema = z.strictObject({
+  scenario: scenarioSchema,
+  generation: z.uuid(),
+})
+function readGuidedDemo() {
+  try {
+    const value = guidedSchema.safeParse(
+      JSON.parse(sessionStorage.getItem(guidedKey) ?? 'null'),
+    )
+    return value.success ? value.data : null
+  } catch {
+    return null
+  }
+}
 
 export function useDemoController() {
   const cache = useQueryClient()
-  const { session } = useSession()
+  const navigate = useNavigate()
+  const { session, endSession } = useSession()
+  const [guided, setGuided] = useState(readGuidedDemo)
+  const clearGuided = () => {
+    sessionStorage.removeItem(guidedKey)
+    setGuided(null)
+  }
+  const start = useMutation({
+    mutationFn: async (scenario: z.infer<typeof scenarioSchema>) => {
+      await cache.cancelQueries()
+      const data = await startGuidedDemo(scenario)
+      const active = { scenario, generation: data.generation }
+      sessionStorage.setItem(guidedKey, JSON.stringify(active))
+      setGuided(active)
+      if (data.session) await replaceSession(data.session)
+      else await endSession()
+      void cache.resetQueries({ queryKey: ['nfts'] })
+      cache.removeQueries({ queryKey: ['guided-action'] })
+      await cache.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== 'nfts',
+      })
+      await navigate({ href: demoDestination(scenario), resetScroll: true })
+      window.scrollTo(0, 0)
+      document.getElementById('content')?.focus({ preventScroll: true })
+      return demoDestination(scenario)
+    },
+  })
+  const exit = useMutation({
+    mutationFn: async () => {
+      await cache.cancelQueries()
+      await resetDemo('default')
+      clearGuided()
+      await endSession()
+      void cache.resetQueries({ queryKey: ['nfts'] })
+      cache.removeQueries({ queryKey: ['guided-action'] })
+      await cache.invalidateQueries({
+        predicate: (query) => query.queryKey[0] !== 'nfts',
+      })
+      await navigate({ to: '/', resetScroll: true })
+      window.scrollTo(0, 0)
+      document.getElementById('content')?.focus({ preventScroll: true })
+    },
+  })
   const status = useQuery({
     queryKey: ['private', session?.user.id, session?.token, 'demo-status'],
     queryFn: ({ signal }) => getDemoStatus(signal),
@@ -29,53 +93,15 @@ export function useDemoController() {
     enabled: Boolean(orderId && token),
     retry: false,
   })
-  const [connection, setConnection] = useState<{
-    generation: string
-    online: boolean
-  } | null>(null)
-  const [lastEvent, setLastEvent] = useState<{
-    generation: string
-    type: ResourceEvent['type']
-  } | null>(null)
-  const [invalid, setInvalid] = useState<{
-    generation: string
-    count: number
-  } | null>(null)
-  useEffect(() => {
-    if (!generation) return
-    return subscribeToEvents({
-      generation,
-      token,
-      userId,
-      onConnection: (online) => {
-        setConnection({ generation, online })
-        if (online) {
-          void cache.invalidateQueries({ queryKey: ['nfts'] })
-          void cache.invalidateQueries({
-            queryKey: ['demo', 'order', generation, userId],
-          })
-        }
-      },
-      onEvent: (event) => {
-        setLastEvent({ generation, type: event.type })
-        if (event.type === 'nft.updated')
-          void cache.invalidateQueries({ queryKey: ['nfts'] })
-        else
-          void cache.invalidateQueries({
-            queryKey: ['demo', 'order', generation],
-          })
-      },
-      onInvalid: () =>
-        setInvalid((current) => ({
-          generation,
-          count: current?.generation === generation ? current.count + 1 : 1,
-        })),
-    })
-  }, [cache, generation, token, userId])
+  const realtime = useRealtime(generation, token, userId)
   const reset = useMutation({
     mutationFn: resetDemo,
     onSuccess: async (data) => {
+      if (data.scenario === 'default') clearGuided()
       await cache.cancelQueries({ queryKey: ['nfts'] })
+      await cache.cancelQueries({
+        predicate: (query) => query.queryKey.includes('cart'),
+      })
       await cache.cancelQueries({ queryKey: ['demo', 'order'] })
       cache.removeQueries({ queryKey: ['demo', 'order'] })
       cache.setQueryData(
@@ -83,23 +109,30 @@ export function useDemoController() {
         data,
       )
       void cache.resetQueries({ queryKey: ['nfts'] })
+      void cache.invalidateQueries({
+        predicate: (query) => query.queryKey.includes('cart'),
+      })
       void cache.invalidateQueries({ queryKey: ['session'] })
       void cache.invalidateQueries({ queryKey: ['private'] })
     },
   })
   const emit = useMutation({ mutationFn: emitDemoEvent })
+  const connection = useMutation({
+    mutationFn: setDemoConnection,
+    onSuccess: (action) => {
+      if (action === 'reconnect') realtime.reconnect()
+    },
+  })
   return {
+    guided: guided?.generation === generation ? guided : null,
+    start,
+    exit,
     status,
     order,
     reset,
     emit,
-    connected: Boolean(
-      connection && connection.generation === generation && connection.online,
-    ),
-    lastEvent:
-      lastEvent && lastEvent.generation === generation ? lastEvent.type : null,
-    invalidEvents:
-      invalid && invalid.generation === generation ? invalid.count : 0,
+    connection,
+    ...realtime,
   }
 }
 
@@ -110,4 +143,13 @@ export function useDemo() {
   const demo = useContext(DemoContext)
   if (!demo) throw new Error('DemoProvider is required')
   return demo
+}
+
+export function useRealtimeStatus() {
+  const demo = useContext(DemoContext)
+  return {
+    connected: demo?.connected ?? false,
+    connectionKnown: demo?.connectionKnown ?? false,
+    synchronizing: demo?.synchronizing ?? false,
+  }
 }

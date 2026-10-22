@@ -2,6 +2,9 @@ import { z } from 'zod'
 import { authorization, client, parseResponse } from './client'
 import {
   sessionSchema,
+  profileResponseSchema,
+  type ProfileUpdate,
+  type WalletWrite,
   favoritesSchema,
   walletsResponseSchema,
 } from '@/schemas/api/account'
@@ -55,3 +58,37 @@ export async function getWallets(token: string, signal?: AbortSignal) {
   return parseResponse(walletsResponseSchema, data)
 }
 export type Favorites = z.infer<typeof favoritesSchema>
+
+export async function getProfile(token: string, signal?: AbortSignal) {
+  const { data } = await client.get('/profile', {
+    headers: authorization(token),
+    signal,
+  })
+  return parseResponse(profileResponseSchema, data)
+}
+export async function saveProfile(
+  token: string,
+  body: ProfileUpdate,
+  signal?: AbortSignal,
+) {
+  const { data } = await client.patch('/profile', body, {
+    headers: authorization(token),
+    signal,
+  })
+  return parseResponse(profileResponseSchema, data)
+}
+export async function saveWallet(
+  token: string,
+  body: WalletWrite,
+  id?: string,
+  signal?: AbortSignal,
+) {
+  const { data } = await client.request({
+    method: id ? 'PATCH' : 'POST',
+    url: id ? `/wallets/${encodeURIComponent(id)}` : '/wallets',
+    data: body,
+    headers: authorization(token),
+    signal,
+  })
+  return parseResponse(walletsResponseSchema, data)
+}

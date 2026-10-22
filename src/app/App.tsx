@@ -1,4 +1,8 @@
+import { AuthDialogProvider } from './AuthDialogProvider'
+import { DemoBanner } from '@/components/demo/DemoBanner'
+import { RealtimeFeedback } from '@/components/shared/RealtimeFeedback'
 import { useEffect } from 'react'
+import { CartProvider } from './CartProvider'
 import { SessionProvider } from './SessionProvider'
 import { FavoritesProvider } from './FavoritesProvider'
 import { DemoProvider } from './DemoProvider'
@@ -55,11 +59,15 @@ function AppContent() {
         {t('skipToContent')}
       </a>
       <Header />
+      {['/cart', '/checkout', '/confirmation'].includes(pathname) && (
+        <RealtimeFeedback />
+      )}
       <main
         id="content"
         tabIndex={-1}
         className="page-container w-full max-w-[calc(var(--content-width)_+_var(--page-gutter)_*_2)] ml-auto mr-auto pl-[var(--page-gutter)] pr-[var(--page-gutter)] page-content mt-8"
       >
+        {!['/login', '/register'].includes(pathname) && <DemoBanner />}
         <Outlet />
       </main>
       <Footer />
@@ -72,9 +80,13 @@ export function App() {
   return (
     <SessionProvider>
       <FavoritesProvider>
-        <DemoProvider>
-          <AppContent />
-        </DemoProvider>
+        <CartProvider>
+          <DemoProvider>
+            <AuthDialogProvider>
+              <AppContent />
+            </AuthDialogProvider>
+          </DemoProvider>
+        </CartProvider>
       </FavoritesProvider>
     </SessionProvider>
   )

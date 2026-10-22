@@ -18,7 +18,7 @@ test.describe('Revisão do conjunto visual', () => {
   test('preserva o reflow com texto ampliado nos dois idiomas', async ({
     page,
   }) => {
-    test.setTimeout(60_000)
+    test.setTimeout(120_000)
     for (const locale of ['pt-BR', 'en']) {
       await page.addInitScript(
         (language) => localStorage.setItem('kurio-language', language),

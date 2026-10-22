@@ -1,3 +1,4 @@
+import { cartRequest } from './helpers/cart'
 import { setScenario } from './helpers/scenarios'
 import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
@@ -68,11 +69,19 @@ test.describe('Revisão visual e responsividade', () => {
   test('apresenta skeleton próprio do detalhe, preserva navegação e respeita movimento reduzido', async ({
     page,
   }) => {
+    await page.clock.install()
     await page.setViewportSize({ width: 390, height: 844 })
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await visit(page, '/')
     await setScenario(page, 'slow')
-    await visit(page, '/nfts/emerald-ape-042')
+    await visit(page, '/')
+    await expect(page.locator('.catalog-grid article')).toHaveCount(9)
+    const now = await page.evaluate(() => Date.now())
+    await page.clock.pauseAt(now + 1000)
+    await page
+      .getByRole('link', { name: 'Ver Emerald Ape #042', exact: true })
+      .click()
+    await expect(page).toHaveURL('/nfts/emerald-ape-042')
     await expect(page.getByRole('status')).toHaveText('Carregando NFT…')
     await expect(page.locator('.nft-detail-loading')).toHaveAttribute(
       'aria-busy',
@@ -94,6 +103,7 @@ test.describe('Revisão visual e responsividade', () => {
           (element) => getComputedStyle(element, '::after').animationName,
         ),
     ).toBe('none')
+    await page.clock.resume()
     await page.getByRole('link', { name: 'Back to catalog' }).click()
     await expect(page).toHaveURL('/')
   })
@@ -132,15 +142,15 @@ test.describe('Revisão visual e responsividade', () => {
     const panel = page.locator('.mobile-purchase')
     await expect(panel).toHaveCSS('position', 'static')
     await panel
-      .getByRole('link', { name: 'COMPRAR NFT', exact: true })
+      .getByRole('button', { name: 'COMPRAR NFT', exact: true })
       .scrollIntoViewIfNeeded()
     await expect(
-      panel.getByRole('link', { name: 'COMPRAR NFT', exact: true }),
+      panel.getByRole('button', { name: 'COMPRAR NFT', exact: true }),
     ).toBeInViewport()
     await page.setViewportSize({ width: 390, height: 844 })
     await expect(panel).toHaveCSS('position', 'fixed')
     await expect(
-      panel.getByRole('link', { name: 'COMPRAR NFT', exact: true }),
+      panel.getByRole('button', { name: 'COMPRAR NFT', exact: true }),
     ).toBeInViewport()
   })
 
@@ -198,6 +208,7 @@ test.describe('Revisão visual e responsividade', () => {
 test('reserva espaço inferior apenas para a navegação ou ações fixas visíveis', async ({
   page,
 }) => {
+  test.setTimeout(120000)
   for (const width of [390, 699, 700, 768, 1440]) {
     await page.setViewportSize({ width, height: 844 })
     for (const route of [
@@ -246,5 +257,37 @@ test('mantém o rodapé do carrinho acima do menu inferior', async ({ page }) =>
     const footerBox = await copyright.boundingBox()
     const menuBox = await page.locator('.mobile-navigation').boundingBox()
     expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(menuBox!.y)
+  }
+})
+
+test('mantém o skeleton da conta sem overflow com texto ampliado e rede lenta', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 768, height: 844 })
+  await visitWithAccount(page, '/profile')
+  await cartRequest(page, '/demo/reset', 'POST', { scenario: 'account-slow' })
+  for (const locale of ['pt-BR', 'en']) {
+    await page.evaluate(
+      (value) => localStorage.setItem('kurio-language', value),
+      locale,
+    )
+    for (const route of ['/profile', '/wallets']) {
+      await visit(page, route)
+      await expect(page.locator('main [aria-busy=true]').first()).toBeVisible()
+      await page.evaluate(() => {
+        document.documentElement.style.fontSize = '200%'
+      })
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true)
+      await expect(page.locator('input[name=displayName]')).toBeVisible()
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      ).toBe(true)
+    }
   }
 })

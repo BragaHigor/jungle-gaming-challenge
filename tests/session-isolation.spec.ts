@@ -181,7 +181,7 @@ test('traduz erros remotos e a consulta de favoritos para inglês', async ({
   ).toBeVisible()
 })
 
-test('trata HTTP 401 dos favoritos preservando busca e posição de retorno na URL', async ({
+test('trata HTTP 401 das consultas preservando busca e posição de retorno na URL', async ({
   page,
 }) => {
   await visit(page, '/')
@@ -202,11 +202,7 @@ test('trata HTTP 401 dos favoritos preservando busca e posição de retorno na U
       )
     ).status,
   ).toBe(200)
-  await page
-    .locator('.catalog-grid article')
-    .first()
-    .getByRole('button')
-    .click()
+  await page.evaluate(() => window.dispatchEvent(new Event('visibilitychange')))
   await expect(page).toHaveURL(/\/login\?redirect=.*reason=expired/)
   expect(new URL(page.url()).searchParams.get('redirect')).toBe(route)
   await submitLogin(page)

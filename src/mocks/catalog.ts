@@ -2,7 +2,7 @@ import { categories, networks } from '@/constants/catalog'
 import { catalogQuerySchema, type Nft } from '@/schemas/api/catalog'
 import { ethToWei } from '@/utils/eth'
 import { parseInput } from './responses'
-import { readDatabase } from './database'
+import type { Database } from './database'
 
 const comparePrice = (left: Nft, right: Nft) => {
   const difference = ethToWei(left.price) - ethToWei(right.price)
@@ -23,7 +23,7 @@ function integerParam(value: string | undefined) {
   if (!/^[1-9][0-9]*$/.test(value)) return NaN
   return Number(value)
 }
-export async function listNfts(url: URL) {
+export function listNfts(url: URL, database: Database) {
   const params = Object.fromEntries(url.searchParams)
   const query = parseInput(catalogQuerySchema, {
     ...params,
@@ -38,7 +38,6 @@ export async function listNfts(url: URL) {
     page: integerParam(params.page),
     pageSize: integerParam(params.pageSize),
   })
-  const database = await readDatabase()
   const matches = database.nfts
     .filter((nft) => {
       if (database.scenario === 'empty') return false

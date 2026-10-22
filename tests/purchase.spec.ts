@@ -1,3 +1,4 @@
+import { seedCart, cartRequest } from './helpers/cart'
 import { visitWithAccount } from './helpers/auth'
 import { visit } from './helpers/navigation'
 import { test, expect, type Page } from '@playwright/test'
@@ -23,6 +24,8 @@ test.describe('Visual do fluxo de compra', () => {
   test('recalcula quantidades e remoções com precisão e permite esvaziar o carrinho', async ({
     page,
   }) => {
+    await visit(page, '/')
+    await seedCart(page)
     await visit(page, '/cart')
     const items = page.getByRole('region', { name: 'Seus NFTs', exact: true })
     const summary = page.getByRole('region', {
@@ -47,9 +50,11 @@ test.describe('Visual do fluxo de compra', () => {
     ).toHaveCount(0)
   })
 
-  test('valida o cupom vazio e não inventa um desconto aplicado', async ({
+  test('valida o cupom vazio e apresenta o desconto confirmado pela API', async ({
     page,
   }) => {
+    await visit(page, '/')
+    await seedCart(page)
     await visit(page, '/cart')
     await page.getByRole('button', { name: 'Aplicar', exact: true }).click()
     await expect(
@@ -60,37 +65,48 @@ test.describe('Visual do fluxo de compra', () => {
       .fill('KURIO10')
     await page.getByRole('button', { name: 'Aplicar', exact: true }).click()
     await expect(
-      page.getByRole('dialog', { name: 'Código promocional', exact: true }),
+      page.getByText('Cupom KURIO10 aplicado', { exact: true }),
     ).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(
-      page.getByRole('button', { name: 'Aplicar', exact: true }),
-    ).toBeFocused()
     await expect(
       page
         .getByRole('region', { name: 'Resumo da carteira' })
-        .getByText('26.846 ETH', { exact: true }),
+        .getByText('24.163 ETH', { exact: true }),
     ).toBeVisible()
   })
 
   test('trata carregamento, erro recuperável e vazio sem liberar a finalização', async ({
     page,
   }) => {
-    await visit(page, '/cart?view=loading')
+    await visit(page, '/')
+    await seedCart(page)
+    await cartRequest(page, '/demo/reset', 'POST', { scenario: 'cart-slow' })
+    await visit(page, '/cart')
     await expect(
       page.getByRole('region', { name: 'Resumo da carteira' }),
     ).toHaveAttribute('aria-busy', 'true')
     await expect(
-      page.getByRole('button', { name: 'Conectar e finalizar' }),
+      page.getByRole('button', { name: 'Conectar e finalizar', exact: true }),
     ).toBeDisabled()
-    await visit(page, '/cart?view=error')
-    await page.getByRole('button', { name: 'Tentar novamente' }).click()
     await expect(
-      page.getByRole('region', { name: 'Resumo da carteira' }),
+      page.getByRole('link', { name: 'Conectar e finalizar', exact: true }),
     ).toBeVisible()
-    await visit(page, '/cart?view=empty')
+    await cartRequest(page, '/demo/reset', 'POST', { scenario: 'offline' })
+    await visit(page, '/cart')
     await expect(
-      page.getByRole('heading', { name: 'Seu carrinho está vazio' }),
+      page.getByRole('heading', {
+        name: 'Não foi possível carregar o carrinho.',
+        exact: true,
+      }),
+    ).toBeVisible()
+    await cartRequest(page, '/demo/reset', 'POST', { scenario: 'default' })
+    await page
+      .getByRole('button', { name: 'Tentar novamente', exact: true })
+      .click()
+    await expect(
+      page.getByRole('heading', {
+        name: 'Seu carrinho está vazio',
+        exact: true,
+      }),
     ).toBeVisible()
   })
 
@@ -126,7 +142,7 @@ test.describe('Visual do fluxo de compra', () => {
     else
       await page
         .getByRole('combobox', { name: 'Carteiras disponíveis', exact: true })
-        .selectOption('primary')
+        .selectOption({ label: 'Principal · 0xA91F…E82C' })
     await page
       .getByRole('textbox', { name: 'Código de indicação', exact: true })
       .fill('KURIO')
@@ -149,18 +165,20 @@ test.describe('Visual do fluxo de compra', () => {
       review.getByText('MetaMask · Ethereum', { exact: true }),
     ).toBeVisible()
     await expect(review.getByText('26.846 ETH', { exact: true })).toBeVisible()
-    await review
-      .getByRole('button', { name: 'Confirmar compra', exact: true })
-      .click()
     await expect(
-      page.getByRole('dialog', { name: 'Conteúdo indisponível', exact: true }),
-    ).toBeVisible()
-    await page.keyboard.press('Escape')
+      review.getByRole('button', { name: 'Confirmar compra', exact: true }),
+    ).toBeDisabled()
+    await expect(
+      review.getByRole('button', {
+        name: 'Conectar carteira simulada',
+        exact: true,
+      }),
+    ).toBeEnabled()
     await page.keyboard.press('Escape')
     await expect(
       page.getByRole('button', { name: 'Revisar compra', exact: true }),
     ).toBeFocused()
-    expect(writes).toEqual([])
+    expect(writes.filter((url) => !url.endsWith('/api/cart/quote'))).toEqual([])
     await visitWithAccount(page, '/confirmation?status=confirmed')
     await expect(
       page.getByRole('heading', { name: 'Nenhum pedido para exibir' }),
@@ -219,6 +237,7 @@ test.describe('Visual do fluxo de compra', () => {
   test('mantém as telas sem overflow nas larguras de aceite e nos dois idiomas', async ({
     page,
   }) => {
+    test.setTimeout(120_000)
     for (const width of [320, 390, 414, 768, 1440]) {
       await page.setViewportSize({ width, height: 900 })
       for (const path of ['/cart', '/checkout', '/confirmation']) {

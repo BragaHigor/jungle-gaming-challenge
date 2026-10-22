@@ -4,13 +4,14 @@ import {
   updateDatabase,
   type Database,
 } from './database'
+import { mergeVisitorCart } from './cart'
 import { MockError } from './responses'
 import type { RegistrationDraft } from '@/schemas/account'
 
 const hex = (bytes: Uint8Array) =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('')
 
-async function hashPassword(password: string, salt: string) {
+export async function hashPassword(password: string, salt: string) {
   const key = await crypto.subtle.importKey(
     'raw',
     new TextEncoder().encode(password),
@@ -39,6 +40,7 @@ function createSession(database: Database, userId: string) {
     (session) => Date.parse(session.expiresAt) > Date.now(),
   )
   database.sessions.push(record)
+  mergeVisitorCart(database, userId)
   return getSession(database, record.token)!
 }
 
@@ -56,6 +58,11 @@ export async function login(email: string, password: string) {
   return updateDatabase((database) => {
     if (database.generation !== snapshot.generation)
       throw new MockError('SCENARIO_RESET', 409)
+    if (
+      database.users.find((value) => value.id === user.id)?.passwordHash !==
+      user.passwordHash
+    )
+      throw new MockError('UNAUTHORIZED', 401)
     return createSession(database, user.id)
   })
 }
@@ -106,6 +113,8 @@ export async function register(draft: RegistrationDraft) {
       userId: user.id,
       items: [],
       version: 1,
+      coupon: null,
+      mergeNotice: 'none',
     })
     return createSession(database, user.id)
   })
