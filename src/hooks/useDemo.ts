@@ -1,14 +1,14 @@
 import { useSession } from './useSession'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   emitDemoEvent,
   getDemoOrder,
   getDemoStatus,
   resetDemo,
+  setDemoConnection,
 } from '@/api/demo'
-import { subscribeToEvents } from '@/services/realtime'
-import type { ResourceEvent } from '@/schemas/api/events'
+import { useRealtime } from './useRealtime'
 
 export function useDemoController() {
   const cache = useQueryClient()
@@ -29,55 +29,7 @@ export function useDemoController() {
     enabled: Boolean(orderId && token),
     retry: false,
   })
-  const [connection, setConnection] = useState<{
-    generation: string
-    online: boolean
-  } | null>(null)
-  const [lastEvent, setLastEvent] = useState<{
-    generation: string
-    type: ResourceEvent['type']
-  } | null>(null)
-  const [invalid, setInvalid] = useState<{
-    generation: string
-    count: number
-  } | null>(null)
-  useEffect(() => {
-    if (!generation) return
-    return subscribeToEvents({
-      generation,
-      token,
-      userId,
-      onConnection: (online) => {
-        setConnection({ generation, online })
-        if (online) {
-          void cache.invalidateQueries({ queryKey: ['nfts'] })
-          void cache.invalidateQueries({
-            predicate: (query) => query.queryKey.includes('cart'),
-          })
-          void cache.invalidateQueries({
-            queryKey: ['demo', 'order', generation, userId],
-          })
-        }
-      },
-      onEvent: (event) => {
-        setLastEvent({ generation, type: event.type })
-        if (event.type === 'nft.updated') {
-          void cache.invalidateQueries({ queryKey: ['nfts'] })
-          void cache.invalidateQueries({
-            predicate: (query) => query.queryKey.includes('cart'),
-          })
-        } else
-          void cache.invalidateQueries({
-            queryKey: ['demo', 'order', generation],
-          })
-      },
-      onInvalid: () =>
-        setInvalid((current) => ({
-          generation,
-          count: current?.generation === generation ? current.count + 1 : 1,
-        })),
-    })
-  }, [cache, generation, token, userId])
+  const realtime = useRealtime(generation, token, userId)
   const reset = useMutation({
     mutationFn: resetDemo,
     onSuccess: async (data) => {
@@ -100,18 +52,19 @@ export function useDemoController() {
     },
   })
   const emit = useMutation({ mutationFn: emitDemoEvent })
+  const connection = useMutation({
+    mutationFn: setDemoConnection,
+    onSuccess: (action) => {
+      if (action === 'reconnect') realtime.reconnect()
+    },
+  })
   return {
     status,
     order,
     reset,
     emit,
-    connected: Boolean(
-      connection && connection.generation === generation && connection.online,
-    ),
-    lastEvent:
-      lastEvent && lastEvent.generation === generation ? lastEvent.type : null,
-    invalidEvents:
-      invalid && invalid.generation === generation ? invalid.count : 0,
+    connection,
+    ...realtime,
   }
 }
 
@@ -122,4 +75,13 @@ export function useDemo() {
   const demo = useContext(DemoContext)
   if (!demo) throw new Error('DemoProvider is required')
   return demo
+}
+
+export function useRealtimeStatus() {
+  const demo = useContext(DemoContext)
+  return {
+    connected: demo?.connected ?? false,
+    connectionKnown: demo?.connectionKnown ?? false,
+    synchronizing: demo?.synchronizing ?? false,
+  }
 }

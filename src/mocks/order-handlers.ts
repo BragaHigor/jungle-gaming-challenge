@@ -1,5 +1,5 @@
 import { delay, http, HttpResponse } from 'msw'
-import { readDatabase, updateDatabase, type Database } from './database'
+import { updateDatabase } from './database'
 import { requireUser } from './auth'
 import { currentCart, createQuote } from './cart'
 import { MockError, respond, jsonBody, parseInput } from './responses'
@@ -11,52 +11,11 @@ import {
   type Order,
 } from '@/schemas/api/purchase'
 import { resourceIdSchema } from '@/schemas/api/common'
-import { broadcastResource } from './realtime'
+import { publishOrder, scheduleOrder } from './realtime'
+import { settleOrder } from './order-state'
 
 const json = (data: Parameters<typeof HttpResponse.json>[0]) =>
   HttpResponse.json(data, { headers: { 'Cache-Control': 'no-store' } })
-
-function settle(database: Database, order: Order) {
-  const job = database.settlements[order.id]
-  if (order.status !== 'pending' || !job) return false
-  const ready = database.orderFaults[order.userId] === 'ready'
-  if (Date.now() < job.dueAt && !ready) return false
-  order.status = job.outcome
-  order.version++
-  order.updatedAt = new Date().toISOString()
-  order.reference = order.status === 'confirmed' ? `sim-${order.id}` : null
-  if (order.status === 'declined') {
-    for (const item of order.items) {
-      const nft = database.nfts.find((value) => value.id === item.nft.id)!
-      const edition = nft.editions.find((value) => value.id === item.editionId)!
-      edition.available += item.quantity
-      nft.version++
-    }
-  } else {
-    const cart = database.carts.find((value) => value.id === job.cartId)!
-    for (const [index, item] of order.items.entries()) {
-      const line = cart.items.find((value) => value.id === job.lineIds[index])
-      if (line) line.quantity = Math.max(0, line.quantity - item.quantity)
-    }
-    cart.items = cart.items.filter((value) => value.quantity > 0)
-    cart.version++
-    if (!cart.items.length) cart.coupon = null
-  }
-  delete database.settlements[order.id]
-  return true
-}
-async function publish(order: Order) {
-  const database = await readDatabase()
-  await broadcastResource({
-    eventId: crypto.randomUUID(),
-    generation: database.generation,
-    type: 'order.updated',
-    resourceId: order.id,
-    userId: order.userId,
-    version: order.version,
-    data: order,
-  })
-}
 
 export const orderHandlers = [
   http.post('/api/wallet-connections', ({ request }) =>
@@ -132,7 +91,7 @@ export const orderHandlers = [
           const saved = database.orders.find(
             (value) => value.id === previous.orderId,
           )!
-          settle(database, saved)
+          settleOrder(database, saved)
           return saved
         }
         if (
@@ -243,7 +202,8 @@ export const orderHandlers = [
         }
         return order
       })
-      await publish(order)
+      await publishOrder(order)
+      scheduleOrder(order.id)
       if (timeout) await delay(4000)
       return json(order)
     }),
@@ -257,10 +217,12 @@ export const orderHandlers = [
           throw new MockError('UNAVAILABLE', 503)
         const own = database.orders.filter((value) => value.userId === user.id)
         for (const order of own)
-          if (settle(database, order)) changed.push(order)
+          if (settleOrder(database, order)) changed.push(order)
         return own
       })
-      for (const order of changed) await publish(order)
+      for (const order of changed) await publishOrder(order)
+      for (const order of orders)
+        if (order.status === 'pending') scheduleOrder(order.id)
       return json(orders)
     }),
   ),
@@ -274,9 +236,10 @@ export const orderHandlers = [
         const order = database.orders.find((value) => value.id === id)
         if (!order) throw new MockError('NOT_FOUND', 404)
         if (order.userId !== user.id) throw new MockError('FORBIDDEN', 403)
-        return { changed: settle(database, order), order }
+        return { changed: settleOrder(database, order), order }
       })
-      if (result.changed) await publish(result.order)
+      if (result.changed) await publishOrder(result.order)
+      if (result.order.status === 'pending') scheduleOrder(result.order.id)
       return json(result.order)
     }),
   ),

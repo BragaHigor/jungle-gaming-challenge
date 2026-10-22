@@ -14,8 +14,26 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const { t } = useTranslation('demo')
   const { t: purchase } = useTranslation('purchase')
   const { session } = useSession()
-  const { status, order, reset, emit, connected, lastEvent, invalidEvents } =
-    useDemo()
+  const {
+    status,
+    order,
+    reset,
+    emit,
+    connection,
+    connected,
+    synchronizing,
+    lastEvent,
+    invalidEvents,
+    ignoredEvents,
+  } = useDemo()
+  const [eventMode, setEventMode] = useState<
+    | 'normal'
+    | 'duplicate'
+    | 'stale'
+    | 'malformed'
+    | 'foreign'
+    | 'wrong-generation'
+  >('normal')
   const [selection, setSelection] = useState<Scenario | null>(null)
   const { pathname } = useLocation()
   const isCatalogRoute = pathname === '/' || pathname.startsWith('/nfts/')
@@ -74,10 +92,11 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
   const selected = visibleScenarios.some((scenario) => scenario === candidate)
     ? candidate
     : 'default'
-  const error = status.error ?? order.error ?? reset.error ?? emit.error
+  const error =
+    status.error ?? order.error ?? reset.error ?? emit.error ?? connection.error
   const contractError = error instanceof ApiError && error.code === 'CONTRACT'
   const errorText = contractError ? t('contractError') : t('requestError')
-  const pending = reset.isPending || emit.isPending
+  const pending = reset.isPending || emit.isPending || connection.isPending
   const lastLabel = lastEvent === 'nft.updated' ? t('catalog') : t('order')
   return (
     <div className="space-y-5">
@@ -127,6 +146,46 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
           {errorText}
         </p>
       )}
+      <div className="flex flex-wrap gap-3">
+        <Button
+          variant="outline"
+          disabled={pending}
+          onClick={() =>
+            connection.mutate(connected ? 'disconnect' : 'reconnect')
+          }
+        >
+          {t(connected ? 'interruptConnection' : 'resumeConnection')}
+        </Button>
+      </div>
+      {synchronizing && (
+        <p role="status" className="text-sm">
+          {t('reconciling')}
+        </p>
+      )}
+      <label className="grid gap-2 text-sm">
+        {t('eventMode')}
+        <Select
+          value={eventMode}
+          onChange={(event) =>
+            setEventMode(event.target.value as typeof eventMode)
+          }
+        >
+          {(
+            [
+              'normal',
+              'duplicate',
+              'stale',
+              'malformed',
+              'foreign',
+              'wrong-generation',
+            ] as const
+          ).map((mode) => (
+            <option key={mode} value={mode}>
+              {t(`eventMode_${mode}`)}
+            </option>
+          ))}
+        </Select>
+      </label>
       {order.data && (
         <section
           aria-label={t('order')}
@@ -142,9 +201,13 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
         <Button
           variant="outline"
           disabled={
-            pending || !connected || (!isCatalogRoute && pathname !== '/cart')
+            pending ||
+            !connected ||
+            (!isCatalogRoute &&
+              pathname !== '/cart' &&
+              pathname !== '/checkout')
           }
-          onClick={() => emit.mutate('nft.updated')}
+          onClick={() => emit.mutate({ type: 'nft.updated', mode: eventMode })}
         >
           {t('changeNft')}
         </Button>
@@ -156,14 +219,54 @@ function DemoDashboard({ onApplied }: { onApplied: () => void }) {
             !order.data ||
             order.data.status !== 'pending'
           }
-          onClick={() => emit.mutate('order.updated')}
+          onClick={() =>
+            emit.mutate({
+              type: 'order.updated',
+              mode: eventMode,
+              resourceId: order.data?.id,
+            })
+          }
         >
           {t('changeOrder')}
         </Button>
       </div>
+      {order.data?.status === 'pending' && (
+        <div className="flex flex-wrap gap-3">
+          <Button
+            disabled={pending}
+            onClick={() =>
+              emit.mutate({
+                type: 'order.updated',
+                resourceId: order.data?.id,
+                outcome: 'confirmed',
+              })
+            }
+          >
+            {t('confirmPayment')}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={pending}
+            onClick={() =>
+              emit.mutate({
+                type: 'order.updated',
+                resourceId: order.data?.id,
+                outcome: 'declined',
+              })
+            }
+          >
+            {t('declinePayment')}
+          </Button>
+        </div>
+      )}
       {lastEvent && (
         <p role="status" className="text-sm">
           {t('lastEvent', { resource: lastLabel })}
+        </p>
+      )}
+      {ignoredEvents > 0 && (
+        <p role="status" className="text-sm">
+          {t('ignoredEvent', { count: ignoredEvents })}
         </p>
       )}
       {invalidEvents > 0 && (

@@ -337,7 +337,9 @@
     "reviewAgain": "Revisar novamente",
     "sendingOrder": "Enviando pedido…",
     "orderReadError": "Não foi possível consultar este pedido. Tente novamente; nenhuma nova compra será criada.",
-    "loadingOrder": "Carregando pedido"
+    "loadingOrder": "Carregando pedido",
+    "updatingLive": "Atualizando valores e disponibilidade…",
+    "connectionInterrupted": "Atualizações em tempo real indisponíveis. Seus dados serão sincronizados quando a conexão voltar."
   },
   "account": {
     "preferenceSavedDraft": "Preferência de uso salva. As alterações no formulário ainda não foram salvas.",
@@ -548,7 +550,21 @@
     "scenario_connection-refused": "Conexão de carteira recusada",
     "effect_connection-refused": "A conexão simulada é recusada sem criar um pedido.",
     "scenario_order-read-failure": "Falha ao consultar pedido",
-    "effect_order-read-failure": "A consulta de pedidos falha sem apagar dados. Aplique Pagamento confirmado e tente consultar novamente."
+    "effect_order-read-failure": "A consulta de pedidos falha sem apagar dados. Aplique Pagamento confirmado e tente consultar novamente.",
+    "interruptConnection": "Interromper conexão",
+    "resumeConnection": "Reconectar",
+    "reconciling": "Sincronizando dados com a API…",
+    "eventMode": "Modo do evento",
+    "eventMode_normal": "Atualização normal",
+    "eventMode_duplicate": "Evento duplicado",
+    "eventMode_stale": "Evento antigo",
+    "eventMode_malformed": "Evento inválido",
+    "eventMode_foreign": "Evento de outra conta",
+    "eventMode_wrong-generation": "Evento anterior ao reset",
+    "confirmPayment": "Confirmar pagamento simulado",
+    "declinePayment": "Recusar pagamento simulado",
+    "ignoredEvent_one": "{{count}} evento desatualizado ou repetido descartado",
+    "ignoredEvent_other": "{{count}} eventos desatualizados ou repetidos descartados"
   },
   "examples": {
     "displayName": "ex: Alex Silva",
