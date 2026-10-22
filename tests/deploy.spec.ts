@@ -1,5 +1,42 @@
 import { expect, test } from '@playwright/test'
 import { visit } from './helpers/navigation'
+import { visitWithAccount } from './helpers/auth'
+import { cartRequest } from './helpers/cart'
+import { fillCollector } from './helpers/purchase'
+
+test('conclui compra simulada e recupera o recibo após refresh', async ({
+  page,
+}) => {
+  await visitWithAccount(page, '/checkout')
+  expect(
+    (
+      await cartRequest(page, '/demo/reset', 'POST', {
+        scenario: 'order-confirmed',
+      })
+    ).status,
+  ).toBe(200)
+  const review = await fillCollector(page)
+  await review
+    .getByRole('button', { name: 'Conectar carteira simulada', exact: true })
+    .click()
+  await review
+    .getByRole('button', { name: 'Confirmar compra', exact: true })
+    .click()
+  await expect(page).toHaveURL(/confirmation\?orderId=/)
+  const confirmation = page.getByRole('heading', {
+    name: 'Seus NFTs agora estão na sua carteira',
+    exact: true,
+  })
+  await expect(confirmation).toBeVisible()
+  const orders = (await cartRequest(page, '/orders')).body
+  expect(orders).toHaveLength(1)
+  expect((await cartRequest(page)).body.items).toEqual([])
+  await page.reload()
+  await expect(confirmation).toBeVisible()
+  expect((await cartRequest(page, `/orders/${orders[0].id}`)).body).toEqual(
+    orders[0],
+  )
+})
 
 test('publica o SHA esperado, os mocks e o worker como JavaScript', async ({
   request,

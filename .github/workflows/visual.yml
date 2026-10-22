@@ -1,14 +1,17 @@
 name: Regressão visual
 
 on:
+  pull_request:
+    branches: [develop, main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: visual-${{ github.ref }}
-  cancel-in-progress: true
+  group: visual-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   visual:
